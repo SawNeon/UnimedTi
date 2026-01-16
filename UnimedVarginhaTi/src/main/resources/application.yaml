@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: UnimedVarginhaTi
+  datasource:
+    url:
+    username:
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      show-sql: true
+  flyway:
+    enabled: true
