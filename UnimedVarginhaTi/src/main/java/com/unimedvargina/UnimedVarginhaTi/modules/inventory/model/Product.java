@@ -16,7 +16,7 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    private String descriptio;
+    private String description;
 
     @Column(nullable = false)
     private Integer currentStock = 0;
