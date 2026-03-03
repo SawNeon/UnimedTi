@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ProductService {
@@ -22,6 +23,6 @@ public class ProductService {
 
     public Product update(Product product) { return repository.save(product); }
 
-    public void delete(Long id) { repository.deleteById(id);}
+    public void delete(UUID id) { repository.deleteById(id);}
 
 }
