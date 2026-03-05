@@ -1,12 +1,13 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.inventory.model;
 
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -23,5 +24,8 @@ public class Product extends BaseEntity {
 
     @Column(nullable = false)
     private Integer minStockLevel;
+
+    @OneToMany(mappedBy = "product")
+    private List<InventoryMovements> movements = new ArrayList<>();
 
 }
