@@ -1,5 +1,6 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.inventory.controller;
 
+import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.InventoryMovements;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,16 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/add-stock")
+    public Product addStock(@PathVariable UUID id, @RequestBody InventoryMovements movementRequest){
+        return service.addStock(id, movementRequest);
+    }
+
+    @PostMapping("/{id}/remove-stock")
+    public Product removeStock(@PathVariable UUID id, @RequestBody InventoryMovements movementRequest) {
+        return service.removeStock(id, movementRequest);
     }
 
 }

@@ -3,9 +3,10 @@ import './index.css'; // Seu CSS global
 import { ProductForm } from './modules/Stock/pages/ProductForm';
 import { ProductList } from './modules/Stock/pages/ProductList';
 import type { ProductDTO } from './modules/Stock/types/Product';
+import { ProductMovement } from './modules/Stock/pages/ProductMovement';
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<'form' | 'list'>('list'); 
+  const [currentScreen, setCurrentScreen] = useState<'list' | 'form' | 'movement'>('list'); 
   const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
 
 
@@ -23,6 +24,10 @@ function App() {
   const handleBackToList = () => {
     setEditingProduct(null); 
     setCurrentScreen('list');
+  };
+
+  const handleMovement = () => {
+    setCurrentScreen('movement');
   };
 
   return (
@@ -57,7 +62,8 @@ function App() {
           
           <button 
             onClick={handleNewItem} 
-            style={{ 
+            style={{
+              marginRight: '10px', 
               backgroundColor: currentScreen === 'form' ? '#007a4d' : 'transparent',
               color: 'white',
               padding: '10px 15px', 
@@ -69,18 +75,28 @@ function App() {
           >
             Novo item
           </button>
+              <button 
+            onClick={handleMovement} 
+            style={{ 
+              backgroundColor: currentScreen === 'movement' ? '#007a4d' : 'transparent',
+              color: 'white',
+              padding: '10px 15px',            
+              cursor: 'pointer',
+              border: '1px solid white',
+              borderRadius: '4px',
+              fontWeight: 'bold'
+            }}
+          >
+            Movimentações
+          </button>
+
         </nav>
       </header>
 
       <main>
-        {currentScreen === 'list' ? (
-          <ProductList onEdit={handleEdit} />
-        ) : (
-          <ProductForm 
-            productToEdit={editingProduct} 
-            onSuccess={handleBackToList} 
-          />
-        )}
+        {currentScreen === 'list' && <ProductList onEdit={handleEdit} />}
+        {currentScreen === 'form' && <ProductForm productToEdit={editingProduct} onSuccess={handleBackToList} />}
+        {currentScreen === 'movement' && <ProductMovement onSuccess={handleBackToList} />}
       </main>
     </div>
   );

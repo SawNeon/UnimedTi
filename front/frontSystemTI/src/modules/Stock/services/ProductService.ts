@@ -1,5 +1,5 @@
 import { api } from '../../../shared/services/api';
-import type { ProductDTO } from '../types/Product';
+import type { ProductDTO, MovementPayload } from '../types/Product';
 
 export const ProductService = {
     create: async (product: ProductDTO) => {
@@ -19,5 +19,19 @@ export const ProductService = {
 
     delete: async (id: string) => {
         await api.delete(`/products/${id}`);
-    }
+    },
+    
+    // now accept the full movement object that already contains the product id
+    addStock: async (movement: MovementPayload) => {
+    const { id, ...payload } = movement;
+    const response = await api.post(`/products/${id}/add-stock`, payload);
+    return response.data;
+   },
+   removeStock: async (movement: MovementPayload) => {
+    // same logic for removal, deconstructing id from the payload
+    const { id, ...payload } = movement;
+    const response = await api.post(`/products/${id}/remove-stock`, payload);
+    return response.data;
+  }
 };
+
