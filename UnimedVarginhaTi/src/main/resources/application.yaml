@@ -9,18 +9,16 @@ spring:
     enabled: false
 
   datasource:
-    url: jdbc:h2:mem:gestaodb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
+    url: jdbc:mysql://localhost:3306/SystemTI?createDatabaseIfNotExist=true&serverTimezone=UTC
+    username: root
+    password: Unimed@2026!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect

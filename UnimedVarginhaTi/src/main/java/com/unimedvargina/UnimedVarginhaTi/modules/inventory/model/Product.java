@@ -25,7 +25,7 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private Integer minStockLevel;
 
-    @OneToMany(mappedBy = "product")
+    @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE)
     private List<InventoryMovements> movements = new ArrayList<>();
 
 }
