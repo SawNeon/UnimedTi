@@ -21,7 +21,6 @@ export const ProductService = {
         await api.delete(`/products/${id}`);
     },
     
-    // now accept the full movement object that already contains the product id
     addStock: async (movement: MovementPayload) => {
     const { id, ...payload } = movement;
     const response = await api.post(`/products/${id}/add-stock`, payload);

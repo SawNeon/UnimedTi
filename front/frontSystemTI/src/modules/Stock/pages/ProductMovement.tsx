@@ -151,9 +151,9 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
              </div>
 
              {/* Motivo, Responsável e Setor */}
-             <div style={{display: 'flex', gap: '20px'}}>
+             <div style={{gap: '20px'}}>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Motivo</label>
+                    <label>Motivo</label>
                     <input 
                         type="text"
                         style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}
@@ -164,10 +164,9 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                     />
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Responsável</label>
+                    <label>Responsável</label>
                     <input 
                         type="text"
-                        style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}
                         value={responsible} 
                         onChange={(e) => setResponsible(e.target.value)} 
                         placeholder="Nome"
@@ -175,7 +174,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                     />
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Setor</label>
+                    <label>Setor</label>
                     <input 
                         type="text"
                         style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}

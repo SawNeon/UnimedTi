@@ -1,0 +1,17 @@
+.label{
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    width: 500px;
+    height: 30px;
+}
+
+.input {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    width: 100%;
+    outline-color: #3a7d71;
+}
+
+
