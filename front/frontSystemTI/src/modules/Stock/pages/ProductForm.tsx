@@ -67,7 +67,7 @@ export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
             {productToEdit ? 'Editar Produto' : 'Novo Produto'}
           </h2>
         </div>
-        
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
 
@@ -102,7 +102,6 @@ export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
               <input
                 type="number"
                 className={styles.input}
-                style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '10px', width: '100%' }}
                 name="currentStock"
                 value={formData.currentStock}
                 onChange={handleChange}
@@ -114,7 +113,6 @@ export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
               <input
                 type="number"
                 className={styles.input}
-                style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '10px', width: '100%' }}
                 name="minStockLevel"
                 value={formData.minStockLevel}
                 onChange={handleChange}

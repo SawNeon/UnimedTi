@@ -9,18 +9,18 @@ import lombok.Setter;
 @Entity
 @Table(name = "assets")
 @Getter @Setter @NoArgsConstructor
-public class Assets extends BaseEntity {
+public class Asset extends BaseEntity {
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false )
-    private String property;
+    @Column(nullable = false, unique = true)
+    private String assetTag;
 
     private String description;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private StatusAssets  status;
+    private AssetStatus status;
 
 }

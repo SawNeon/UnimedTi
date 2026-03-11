@@ -1,4 +1,28 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.assets.controller;
 
+import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetMovements;
+import com.unimedvargina.UnimedVarginhaTi.modules.assets.service.AssetMovementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/assets/{assetId}/movements")
 public class AssetMovementController {
+
+    @Autowired
+    private AssetMovementService service;
+
+    @PostMapping
+    public ResponseEntity<AssetMovements> create(
+            @PathVariable UUID assetId,
+            @RequestBody AssetMovements movement) {
+
+        AssetMovements savedMovement = service.createMovement(assetId, movement);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedMovement);
+    }
+
 }

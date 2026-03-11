@@ -1,6 +1,6 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.assets.model;
 
-public enum AssetsStatus {
+public enum AssetStatus {
     AVAILABLE,
     UNAVAILABLE,
     INACTIVE

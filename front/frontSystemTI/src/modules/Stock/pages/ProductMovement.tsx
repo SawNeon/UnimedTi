@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ProductService } from '../services/ProductService';
-import type { ProductDTO, MovementPayload } from '../types/Product';
+import type { ProductDTO } from '../types/Product';
 import styles from './ProductMovement.module.css';
 import { ArrowsLeftRight, Package } from '@phosphor-icons/react';
 
