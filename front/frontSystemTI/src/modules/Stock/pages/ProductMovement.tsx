@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ProductService } from '../services/ProductService';
 import type { ProductDTO, MovementPayload } from '../types/Product';
-import styles from './ProductForm.module.css'; 
+import styles from './ProductMovement.module.css';
 import { ArrowsLeftRight, Package } from '@phosphor-icons/react';
 
 interface ProductMovementProps {
@@ -88,11 +88,11 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
              
              {/* Seleção do Produto */}
              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Selecione o Produto</label>
+                <label className={styles.label}>Selecione o Produto</label>
                 <div style={{display: 'flex', alignItems: 'center', border: '1px solid #ddd', borderRadius: '4px', padding: '0 10px', backgroundColor: 'white'}}>
                     <Package size={20} color="#666"/>
                     <select 
-                        style={{border: 'none', width: '100%', padding: '12px', outline: 'none', backgroundColor: 'transparent', color: '#555'}}
+                        className={styles.select}
                         value={selectedProductId}
                         onChange={(e) => setSelectedProductId(e.target.value)}
                         required
@@ -107,27 +107,28 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                 </div>
              </div>
 
-             <div style={{display: 'flex', gap: '20px'}}>
+             <div style={{gap: '20px'}}>
                  {/* Quantidade */}
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Quantidade</label>
-                    <input 
-                        type="number"
-                        min="1"
-                        style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}
-                        value={quantity} 
-                        onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : '')} 
-                        placeholder="Ex: 10"
-                        required
-                    />
+                     <input 
+                          className={styles.input}
+                          type="number"
+                          min="1"
+                          value={quantity} 
+                          onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : '')} 
+                          placeholder="Ex: 10"
+                          required
+                        />
                  </div>
 
                  {/* Tipo de Movimentação (Radio Buttons) */}
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Tipo</label>
+                    <label className={styles.label}>Tipo</label>
                     <div style={{display: 'flex', gap: '10px', height: '100%', alignItems: 'center'}}>
                         <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'add' ? '#3a7d71' : '#555', fontWeight: movementType === 'add' ? 'bold' : 'normal'}}>
-                            <input 
+                            <input
+                                className={styles.input}
                                 type="radio" 
                                 name="movement" 
                                 value="add" 
@@ -137,7 +138,8 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                             Entrada (+)
                         </label>
                         <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'remove' ? '#d32f2f' : '#555', fontWeight: movementType === 'remove' ? 'bold' : 'normal'}}>
-                            <input 
+                            <input
+                                className={styles.input}
                                 type="radio" 
                                 name="movement" 
                                 value="remove" 
@@ -153,10 +155,10 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
              {/* Motivo, Responsável e Setor */}
              <div style={{gap: '20px'}}>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label>Motivo</label>
+                    <label className={styles.label}>Motivo</label>
                     <input 
+                        className={styles.input}
                         type="text"
-                        style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}
                         value={reason} 
                         onChange={(e) => setReason(e.target.value)} 
                         placeholder="Ex: Devolução"
@@ -164,8 +166,9 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                     />
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label>Responsável</label>
-                    <input 
+                    <label className={styles.label} >Responsável</label>
+                    <input
+                        className={styles.input}
                         type="text"
                         value={responsible} 
                         onChange={(e) => setResponsible(e.target.value)} 
@@ -174,10 +177,10 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                     />
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label>Setor</label>
-                    <input 
+                    <label className={styles.label}>Setor</label>
+                    <input
+                        className={styles.input}
                         type="text"
-                        style={{border: '1px solid #ddd', borderRadius: '4px', padding: '12px', width: '100%', outlineColor: '#3a7d71'}}
                         value={sector} 
                         onChange={(e) => setSector(e.target.value)} 
                         placeholder="Ex: TI"
