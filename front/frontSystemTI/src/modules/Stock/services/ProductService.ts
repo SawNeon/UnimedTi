@@ -26,8 +26,8 @@ export const ProductService = {
     const response = await api.post(`/products/${id}/add-stock`, payload);
     return response.data;
    },
-   removeStock: async (movement: MovementPayload) => {
-    // same logic for removal, deconstructing id from the payload
+    removeStock: async (movement: MovementPayload) => {
+
     const { id, ...payload } = movement;
     const response = await api.post(`/products/${id}/remove-stock`, payload);
     return response.data;
