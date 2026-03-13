@@ -25,4 +25,9 @@ public class AssetMovementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedMovement);
     }
 
+    @PatchMapping("/return")
+    public ResponseEntity<AssetMovements> returnAsset(@PathVariable UUID assetId) {
+        AssetMovements closedMovement = service.returnAsset(assetId);
+        return ResponseEntity.ok(closedMovement);
+    }
 }

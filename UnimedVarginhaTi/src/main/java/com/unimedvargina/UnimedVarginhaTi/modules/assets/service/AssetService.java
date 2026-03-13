@@ -29,4 +29,8 @@ public class AssetService {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ativo não encontrado!"));
     }
+
+    public Asset update(Asset asset) {
+        return repository.save(asset);
+    }
 }

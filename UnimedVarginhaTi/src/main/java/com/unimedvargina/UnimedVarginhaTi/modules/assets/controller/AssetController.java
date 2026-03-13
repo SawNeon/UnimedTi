@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,5 +28,7 @@ public class AssetController {
         return ResponseEntity.ok(service.findById(id));
     }
 
+    @GetMapping
+    public ResponseEntity<List<Asset>> findAll() {return ResponseEntity.ok(service.findAll());}
 
 }
