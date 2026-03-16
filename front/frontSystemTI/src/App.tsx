@@ -1,46 +1,48 @@
 import { useState } from 'react';
 import './index.css';
+
 import { ProductForm } from './modules/Stock/pages/ProductForm';
 import { ProductList } from './modules/Stock/pages/ProductList';
-import type { ProductDTO } from './modules/Stock/types/Product';
 import { ProductMovement } from './modules/Stock/pages/ProductMovement';
-import type { AssetDTO } from './modules/Asset/types/Asset';
+
 import { AssetForm } from './modules/Asset/pages/AssetForm';
+// import { AssetList } from './modules/Asset/pages/AssetList';
+// import { AssetMovement } from './modules/Asset/pages/AssetMovement';
+
 import { Package, Desktop, House } from '@phosphor-icons/react';
 
 function App() {
 
   const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'>('welcome');
+  
+  const [activeScreen, setActiveScreen] = useState<'list' | 'form' | 'movement'>('list');
+  
+  const [editingItem, setEditingItem] = useState<any>(null);
 
-  const [stockScreen, setStockScreen] = useState<'list' | 'form' | 'movement'>('list');
 
-  const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
-
-  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset') => {
+   const handleSelectModule = (module: 'welcome' | 'stock' | 'asset') => {
     setActiveModule(module);
-    if (module === 'stock') {
-      setStockScreen('list');
-      setEditingProduct(null);
-    }
+    setActiveScreen('list'); 
+    setEditingItem(null);   
   };
-  const handleEdit = (product: ProductDTO) => {
-    setEditingProduct(product); 
-    setStockScreen('form');  
+
+  const handleEdit = (item: any) => {
+    setEditingItem(item); 
+    setActiveScreen('form');  
   };
 
   const handleNewItem = () => {
-    setEditingProduct(null);   
-    setStockScreen('form');
+    setEditingItem(null);   
+    setActiveScreen('form');
   };
 
-
   const handleBackToList = () => {
-    setEditingProduct(null); 
-    setStockScreen('list');
+    setEditingItem(null); 
+    setActiveScreen('list');
   };
 
   const handleMovement = () => {
-    setStockScreen('movement');
+    setActiveScreen('movement');
   };
 
   const renderMainContent = () => {
@@ -53,18 +55,22 @@ function App() {
       );
     }
 
-    if (activeModule === 'asset') {
-      return <AssetForm onSuccess={() => handleSelectModule('welcome')} />;
+    if (activeModule === 'stock') {
+      if (activeScreen === 'form') return <ProductForm productToEdit={editingItem} onSuccess={handleBackToList} />;
+      if (activeScreen === 'movement') return <ProductMovement onSuccess={handleBackToList} />;
+      return <ProductList onEdit={handleEdit} />;
     }
 
-    if (activeModule === 'stock') {
-      if (stockScreen === 'form') {
-        return <ProductForm productToEdit={editingProduct} onSuccess={handleBackToList} />;
-      }
-      if (stockScreen === 'movement') {
-        return <ProductMovement onSuccess={handleBackToList} />;
-      }
-      return <ProductList onEdit={handleEdit} />;
+    if (activeModule === 'asset') {
+      
+      if (activeScreen === 'form') return <AssetForm assetToEdit={editingItem} onSuccess={handleBackToList} />;
+      
+      // if (activeScreen === 'movement') return <AssetMovement onSuccess={handleBackToList} />;
+      // return <AssetList onEdit={handleEdit} />;
+      
+      // Enquanto não cria, deixamos uma mensagem temporária para a Lista e Movimentação não quebrarem:
+      if (activeScreen === 'movement') return <div>Tela de Empréstimos e Devoluções em construção...</div>;
+      return <div>Tela de Lista de Ativos em construção... <br/><br/> <button onClick={handleNewItem}>Testar Formulário</button></div>;
     }
   };
 
@@ -99,21 +105,22 @@ function App() {
             {activeModule === 'asset' && 'Gestão de Ativos'}
           </h2>
 
-          {activeModule === 'stock' && (
+          {activeModule !== 'welcome' && (
             <nav style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={handleBackToList} style={getHeaderButtonStyle(stockScreen === 'list')}>
+              <button onClick={handleBackToList} style={getHeaderButtonStyle(activeScreen === 'list')}>
                 Ver Lista
               </button>
-              <button onClick={handleNewItem} style={getHeaderButtonStyle(stockScreen === 'form')}>
-                + Novo item
+              
+              <button onClick={handleNewItem} style={getHeaderButtonStyle(activeScreen === 'form')}>
+                {activeModule === 'stock' ? '+ Novo Produto' : '+ Novo Ativo'}
               </button>
-              <button onClick={handleMovement} style={getHeaderButtonStyle(stockScreen === 'movement')}>
-                Movimentações
+              
+              <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
+                {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos / Devoluções'}
               </button>
             </nav>
           )}
         </header>
-
 
         <main className="content-container">
           {renderMainContent()}
