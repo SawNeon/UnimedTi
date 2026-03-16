@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/assets")
+@RequestMapping("/api/assets")
 public class AssetController {
 
     @Autowired
