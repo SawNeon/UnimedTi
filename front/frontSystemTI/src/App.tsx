@@ -6,7 +6,7 @@ import { ProductList } from './modules/Stock/pages/ProductList';
 import { ProductMovement } from './modules/Stock/pages/ProductMovement';
 
 import { AssetForm } from './modules/Asset/pages/AssetForm';
-// import { AssetList } from './modules/Asset/pages/AssetList';
+import { AssetList } from './modules/Asset/pages/AssetList';
 // import { AssetMovement } from './modules/Asset/pages/AssetMovement';
 
 import { Package, Desktop, House } from '@phosphor-icons/react';
@@ -70,7 +70,7 @@ function App() {
       
       // Enquanto não cria, deixamos uma mensagem temporária para a Lista e Movimentação não quebrarem:
       if (activeScreen === 'movement') return <div>Tela de Empréstimos e Devoluções em construção...</div>;
-      return <div>Tela de Lista de Ativos em construção... <br/><br/> <button onClick={handleNewItem}>Testar Formulário</button></div>;
+      return <AssetList onEdit={handleEdit} />;
     }
   };
 

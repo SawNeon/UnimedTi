@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/assets/{assetId}/movements")
+@RequestMapping("/api/assets/{assetId}/movements")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AssetMovementController {
 
     @Autowired
