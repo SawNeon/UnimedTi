@@ -1,5 +1,7 @@
 import { api } from '../../../shared/services/api';
+import type { AssetMovement } from '../pages/AssetMovement';
 import type { AssetDTO} from '../types/Asset';
+import type { AssetMovementDTO } from '../types/AssetMovement';
 
 export const AssetService = {
     create: async (asset: AssetDTO) => {
@@ -20,5 +22,10 @@ export const AssetService = {
     returnAsset: async (id: string) => {
         await api.patch(`/assets/${id}/movements/return`);
         return true;
+    },
+    acesstMovement: async (movement: AssetMovementDTO) => {
+         const { id, ...AssetMovement } = movement;
+            const response = await api.post(`/assets/${id}/movements`, AssetMovement);
+            return response.data;
     }
-}
+    };

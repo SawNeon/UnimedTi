@@ -30,7 +30,7 @@ public class AssetMovementService {
 
         movement.setAsset(asset);
 
-        movement.setResponsible(getUsuarioLogado());
+        movement.setResponsibleManager(getUsuarioLogado());
 
         return assetMovementsRepository.save(movement);
     }

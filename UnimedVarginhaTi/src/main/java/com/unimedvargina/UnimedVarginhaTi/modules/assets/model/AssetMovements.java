@@ -27,6 +27,12 @@ public class AssetMovements extends BaseEntity {
     @Column(nullable = false)
     private String responsible;
 
+    @Column(nullable = false)
+    private String responsibleManager;
+
+    @Column(nullable = false)
+    private String sector;
+
     private LocalDate expectedReturnDate;
 
     private LocalDateTime actualReturnDate;

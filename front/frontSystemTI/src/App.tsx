@@ -7,7 +7,7 @@ import { ProductMovement } from './modules/Stock/pages/ProductMovement';
 
 import { AssetForm } from './modules/Asset/pages/AssetForm';
 import { AssetList } from './modules/Asset/pages/AssetList';
-// import { AssetMovement } from './modules/Asset/pages/AssetMovement';
+import { AssetMovement } from './modules/Asset/pages/AssetMovement';
 
 import { Package, Desktop, House } from '@phosphor-icons/react';
 
@@ -65,11 +65,7 @@ function App() {
       
       if (activeScreen === 'form') return <AssetForm assetToEdit={editingItem} onSuccess={handleBackToList} />;
       
-      // if (activeScreen === 'movement') return <AssetMovement onSuccess={handleBackToList} />;
-      // return <AssetList onEdit={handleEdit} />;
-      
-      // Enquanto não cria, deixamos uma mensagem temporária para a Lista e Movimentação não quebrarem:
-      if (activeScreen === 'movement') return <div>Tela de Empréstimos e Devoluções em construção...</div>;
+      if (activeScreen === 'movement') return <AssetMovement onSuccess={handleBackToList} />;
       return <AssetList onEdit={handleEdit} />;
     }
   };
@@ -116,7 +112,7 @@ function App() {
               </button>
               
               <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
-                {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos / Devoluções'}
+                {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
               </button>
             </nav>
           )}
