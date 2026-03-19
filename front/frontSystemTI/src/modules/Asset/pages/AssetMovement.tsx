@@ -119,7 +119,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
                    
                  </div>
 
-                 <div style={{ display: 'flex', gap: '20px' }}>
+                 <div style={{gap: '20px' }}>
                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                       <label className={styles.label}>Setor</label>
                       <input

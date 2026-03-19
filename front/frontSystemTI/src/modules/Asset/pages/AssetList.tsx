@@ -34,6 +34,7 @@ export function AssetList({ onEdit }: AssetListProps) {
                 await AssetService.returnAsset(id);
                 setAssets(prev => prev.filter(a => a.id !== id));
                 alert("Ativo devolvido com sucesso!");
+                loadAssets();
             } catch (error) {
                 console.error("Erro ao devolver ativo:", error);
                 alert("Erro ao conectar com a API.");
