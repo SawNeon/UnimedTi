@@ -19,6 +19,7 @@ public class AssetMovementService {
     @Autowired
     private AssetService assetService;
 
+    
     public AssetMovements createMovement(UUID id, AssetMovements movement) {
 
         Asset asset = assetService.findById(id);

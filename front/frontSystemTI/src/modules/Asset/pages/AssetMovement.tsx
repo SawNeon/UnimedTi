@@ -84,7 +84,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
                         <option value="" disabled>Escolha um item...</option>
                         {Assets.map(p => (
                             <option key={p.id} value={p.id}>
-                                {p.name} (Status: {p.status})
+                                {p.name} (Status: {p.status == "AVAILABLE" ? "Disponível" : p.status == "UNAVAILABLE" ? "Em Uso" : "Indisponível"})
                             </option>
                         ))}
                     </select>
