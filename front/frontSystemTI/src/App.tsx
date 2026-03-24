@@ -9,35 +9,39 @@ import { AssetForm } from './modules/Asset/pages/AssetForm';
 import { AssetList } from './modules/Asset/pages/AssetList';
 import { AssetMovement } from './modules/Asset/pages/AssetMovement';
 
-import { Package, Desktop, House } from '@phosphor-icons/react';
+import { Package, Desktop, House, SignOut } from '@phosphor-icons/react';
+import { AuthService } from './shared/services/authService';
+import { Login } from './modules/Auth/pages/Login';
 
 function App() {
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AuthService.isAuthenticated());
+
   const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'>('welcome');
-  
+
   const [activeScreen, setActiveScreen] = useState<'list' | 'form' | 'movement'>('list');
-  
+
   const [editingItem, setEditingItem] = useState<any>(null);
 
 
-   const handleSelectModule = (module: 'welcome' | 'stock' | 'asset') => {
+  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset') => {
     setActiveModule(module);
-    setActiveScreen('list'); 
-    setEditingItem(null);   
+    setActiveScreen('list');
+    setEditingItem(null);
   };
 
   const handleEdit = (item: any) => {
-    setEditingItem(item); 
-    setActiveScreen('form');  
+    setEditingItem(item);
+    setActiveScreen('form');
   };
 
   const handleNewItem = () => {
-    setEditingItem(null);   
+    setEditingItem(null);
     setActiveScreen('form');
   };
 
   const handleBackToList = () => {
-    setEditingItem(null); 
+    setEditingItem(null);
     setActiveScreen('list');
   };
 
@@ -45,6 +49,14 @@ function App() {
     setActiveScreen('movement');
   };
 
+  const handleLogout = () => {
+    AuthService.logout();
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
   const renderMainContent = () => {
     if (activeModule === 'welcome') {
       return (
@@ -55,6 +67,8 @@ function App() {
       );
     }
 
+
+
     if (activeModule === 'stock') {
       if (activeScreen === 'form') return <ProductForm productToEdit={editingItem} onSuccess={handleBackToList} />;
       if (activeScreen === 'movement') return <ProductMovement onSuccess={handleBackToList} />;
@@ -62,9 +76,9 @@ function App() {
     }
 
     if (activeModule === 'asset') {
-      
+
       if (activeScreen === 'form') return <AssetForm assetToEdit={editingItem} onSuccess={handleBackToList} />;
-      
+
       if (activeScreen === 'movement') return <AssetMovement onSuccess={handleBackToList} />;
       return <AssetList onEdit={handleEdit} />;
     }
@@ -72,7 +86,7 @@ function App() {
 
   return (
     <div className="app-layout">
-      
+
       <aside style={{ backgroundColor: '#1b4b43', padding: '20px', color: 'white', display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '30px' }}>
           <div><img src="./public/logoUnimed.svg" alt="Logo" style={{ width: '50px', height: '50px', objectFit: 'contain' }} /></div>
@@ -90,10 +104,17 @@ function App() {
         <button onClick={() => handleSelectModule('asset')} style={getSidebarButtonStyle(activeModule === 'asset')}>
           <Desktop size={20} /> Ativos
         </button>
+        <div style={{ marginTop: 'auto' }}>
+          <button onClick={handleLogout} style={getSidebarButtonStyle(false)}>
+            <SignOut size={20} /> Sair
+          </button>
+        </div>
       </aside>
 
+
+
       <div className="main-area">
-        
+
         <header style={{ backgroundColor: 'white', padding: '20px 30px', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, color: '#333', fontSize: '20px' }}>
             {activeModule === 'welcome' && 'Página Inicial'}
@@ -106,11 +127,11 @@ function App() {
               <button onClick={handleBackToList} style={getHeaderButtonStyle(activeScreen === 'list')}>
                 Ver Lista
               </button>
-              
+
               <button onClick={handleNewItem} style={getHeaderButtonStyle(activeScreen === 'form')}>
                 {activeModule === 'stock' ? '+ Novo Produto' : '+ Novo Ativo'}
               </button>
-              
+
               <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
                 {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
               </button>
