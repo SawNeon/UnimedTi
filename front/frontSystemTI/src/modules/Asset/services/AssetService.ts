@@ -1,5 +1,4 @@
 import { api } from '../../../shared/services/api';
-import type { AssetMovement } from '../pages/AssetMovement';
 import type { AssetDTO} from '../types/Asset';
 import type { AssetMovementDTO } from '../types/AssetMovement';
 

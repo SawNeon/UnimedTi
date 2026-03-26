@@ -1,35 +1,71 @@
 // src/modules/Auth/pages/Login.tsx
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { User, LockKey, Eye, EyeClosed, Intersect } from '@phosphor-icons/react';
 import { AuthService } from '../../../shared/services/authService';
 import styles from './Login.module.css';
+import axios from 'axios';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+    onLoginSuccess: () => void;
 }
 
 export function Login({ onLoginSuccess }: LoginProps) {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const [login, setLogin] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [view, setView] = useState<'login' | 'forgot' | 'reset'>('login');
+    const [email, setEmail] = useState('');
+    const [token, setToken] = useState('');
+    const [newPassword, setNewPassword] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
+    const handleRequestReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await axios.post('http://localhost:8080/api/auth/password-reset/request', { email });
+            alert('Código enviado para o seu e-mail!');
+            setView('reset');
+        } catch (err) {
+            setError('E-mail não encontrado.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    
-    try {
-      await AuthService.login({ login, password });
-      
+    const handleConfirmReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
 
-      onLoginSuccess(); 
-      
-    } catch (err) {
+            await axios.post('http://localhost:8080/api/auth/password-reset/confirm', {
+                token,
+                newPassword
+            });
+            alert('Senha alterada com sucesso!');
+            setView('login');
+        } catch (err) {
+            setError('Código inválido ou expirado.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+
+
+        try {
+            await AuthService.login({ login, password });
+
+
+            onLoginSuccess();
+
+        } catch (err) {
             console.error(err);
             setError('Usuário ou senha inválidos.');
         } finally {
@@ -40,66 +76,123 @@ export function Login({ onLoginSuccess }: LoginProps) {
     return (
         <div className={styles.container}>
             <div className={styles.card}>
-
-
                 <div className={styles.logoContainer}>
                     <Intersect size={48} color="#d1d1d1" weight="fill" />
                 </div>
 
-                <h2 className={styles.systemName}>Entrar no Sistema TI</h2>
-                <h1 className={styles.welcomeTitle}>Olá, Bem-vindo(a)!</h1>
-                <p className={styles.subtitle}>Acesse sua conta para continuar</p>
+                <h2 className={styles.systemName}>Sistema TI</h2>
+                <h1 className={styles.welcomeTitle}>
+                    {view === 'login' && 'Olá, Bem-vindo(a)!'}
+                    {view === 'forgot' && 'Recuperar Senha'}
+                    {view === 'reset' && 'Nova Senha'}
+                </h1>
+                <p className={styles.subtitle}>
+                    {view === 'login' && 'Acesse sua conta para continuar'}
+                    {view === 'forgot' && 'Insira seu e-mail para receber o código'}
+                    {view === 'reset' && 'Digite o código de 6 dígitos e sua nova senha'}
+                </p>
 
-                <form className={styles.form} onSubmit={handleLogin}>
+                {view === 'login' && (
+                    <form className={styles.form} onSubmit={handleLogin}>
+                        <div className={styles.inputGroup}>
+                            <User size={20} className={styles.inputIcon} />
+                            <input
+                                type="text"
+                                placeholder="Usuário"
+                                className={styles.input}
+                                value={login}
+                                onChange={(e) => setLogin(e.target.value)}
+                                disabled={loading}
+                            />
+                        </div>
 
-                    <div className={styles.inputGroup}>
-                        <User size={20} className={styles.inputIcon} />
-                        <input
-                            type="text"
-                            placeholder="Usuário"
-                            className={styles.input}
-                            value={login}
-                            onChange={(e) => setLogin(e.target.value)}
-                            disabled={loading}
-                        />
-                    </div>
+                        <div className={styles.inputGroup}>
+                            <LockKey size={20} className={styles.inputIcon} />
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Senha"
+                                className={styles.input}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
+                            />
+                            <button
+                                type="button"
+                                className={styles.iconButton}
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? <Eye size={20} /> : <EyeClosed size={20} />}
+                            </button>
+                        </div>
 
-                    <div className={styles.inputGroup}>
-                        <LockKey size={20} className={styles.inputIcon} />
-                        <input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Senha"
-                            className={styles.input}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            disabled={loading}
-                        />
-                        <button
-                            type="button"
-                            className={styles.iconButton}
-                            onClick={() => setShowPassword(!showPassword)}
-                            tabIndex={-1}
-                        >
-                            {showPassword ? <Eye size={20} /> : <EyeClosed size={20} />}
+                        {error && <span className={styles.errorText}>{error}</span>}
+
+                        <button type="submit" className={styles.button} disabled={loading}>
+                            {loading ? 'Entrando...' : 'Acessar'}
                         </button>
-                    </div>
 
-                    {error && <span className={styles.errorText}>{error}</span>}
+                        <div className={styles.footerLinks}>
+                            <button type="button" className={styles.link} onClick={() => setView('forgot')}>
+                                Esqueceu sua senha?
+                            </button>
+                        </div>
+                    </form>
+                )}
 
-                    <button type="submit" className={styles.button} disabled={loading}>
-                        {loading ? 'Entrando...' : 'Acessar'}
-                    </button>
-                </form>
+                {view === 'forgot' && (
+                    <form className={styles.form} onSubmit={handleRequestReset}>
+                        <div className={styles.inputGroup}>
+                            <User size={20} className={styles.inputIcon} />
+                            <input
+                                type="email"
+                                placeholder="Seu e-mail cadastrado"
+                                className={styles.input}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        {error && <span className={styles.errorText}>{error}</span>}
+                        <button type="submit" className={styles.button} disabled={loading}>
+                            {loading ? 'Enviando...' : 'Enviar Código'}
+                        </button>
+                        <button type="button" className={styles.link} onClick={() => setView('login')}>
+                            Voltar para o Login
+                        </button>
+                    </form>
+                )}
 
-                <div className={styles.footerLinks}>
-                    <button type="button" className={styles.link}>
-                        Esqueceu sua senha?
-                    </button>
-                    <button type="button" className={styles.link}>
-                        Não tem conta? Solicite acesso.
-                    </button>
-                </div>
-
+                {view === 'reset' && (
+                    <form className={styles.form} onSubmit={handleConfirmReset}>
+                        <div className={styles.inputGroup}>
+                            <LockKey size={20} className={styles.inputIcon} />
+                            <input
+                                type="text"
+                                placeholder="Código de 6 dígitos"
+                                className={styles.input}
+                                value={token}
+                                onChange={(e) => setToken(e.target.value)}
+                                maxLength={6}
+                                required
+                            />
+                        </div>
+                        <div className={styles.inputGroup}>
+                            <LockKey size={20} className={styles.inputIcon} />
+                            <input
+                                type="password"
+                                placeholder="Nova Senha"
+                                className={styles.input}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        {error && <span className={styles.errorText}>{error}</span>}
+                        <button type="submit" className={styles.button} disabled={loading}>
+                            {loading ? 'Alterando...' : 'Confirmar Nova Senha'}
+                        </button>
+                    </form>
+                )}
             </div>
         </div>
     );
