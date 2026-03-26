@@ -26,7 +26,7 @@ spring:
     host: smtp-mail.outlook.com
     port: 587
     username: avisos@unimedvarginha.coop.br
-    password: qDB@K[^Wnq}1
+    password: ${DB_PASSWORD}
     properties:
       mail:
         smtp:
