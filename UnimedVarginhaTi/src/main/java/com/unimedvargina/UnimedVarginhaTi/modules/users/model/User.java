@@ -24,14 +24,20 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    private String name;
+
+    private String email;
+
     private String login;
     private String password;
 
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
-    public User(String login, String password, UserRole role) {
+    public User(String login, String name, String email, String password, UserRole role) {
         this.login = login;
+        this.name = name;
+        this.email = email;
         this.password = password;
         this.role = role;
     }
@@ -49,6 +55,9 @@ public class User implements UserDetails {
         return password;
     }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
     @Override
     public String getUsername() {
         return login;

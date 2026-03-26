@@ -22,8 +22,21 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
+  mail:
+    host: smtp-mail.outlook.com
+    port: 587
+    username: avisos@unimedvarginha.coop.br
+    password: qDB@K[^Wnq}1
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 api:
   security:
     token:
       secret: unimed-ti-dev-secret-123
+

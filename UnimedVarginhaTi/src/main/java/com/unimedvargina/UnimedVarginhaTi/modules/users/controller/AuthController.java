@@ -5,6 +5,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.users.dto.LoginResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.dto.RegisterDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.repository.UserRepository;
+import com.unimedvargina.UnimedVarginhaTi.modules.users.service.EmailService;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.service.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,9 @@ public class AuthController {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private EmailService emailService;
+
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody AuthenticationDTO data) {
 
@@ -50,7 +54,7 @@ public class AuthController {
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
 
-        User newUser = new User(data.login(), encryptedPassword, data.role());
+        User newUser = new User(data.login(), data.name(), data.email(), encryptedPassword, data.role());
         this.repository.save(newUser);
 
         return ResponseEntity.ok().build();

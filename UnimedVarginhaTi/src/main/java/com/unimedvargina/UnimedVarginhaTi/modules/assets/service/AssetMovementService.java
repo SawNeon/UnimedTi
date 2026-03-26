@@ -4,7 +4,10 @@ import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.Asset;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetMovements;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.repository.AssetMovementsRepository;
+import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,8 +39,14 @@ public class AssetMovementService {
         return assetMovementsRepository.save(movement);
     }
 
-    private String getUsuarioLogado() {
-        return "Usuario_TI_Padrao";
+    private User getUsuarioLogado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("User not logged in.");
+        }
+
+        return (User) authentication.getPrincipal();
     }
 
     public AssetMovements returnAsset(UUID assetId) {

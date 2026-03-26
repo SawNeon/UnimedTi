@@ -2,6 +2,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.assets.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
+import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -28,7 +29,7 @@ public class AssetMovements extends BaseEntity {
     private String responsible;
 
     @Column(nullable = false)
-    private String responsibleManager;
+    private User responsibleManager;
 
     @Column(nullable = false)
     private String sector;
