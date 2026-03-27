@@ -1,4 +1,4 @@
-package com.unimedvargina.UnimedVarginhaTi.shared;
+package com.unimedvargina.UnimedVarginhaTi.shared.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;

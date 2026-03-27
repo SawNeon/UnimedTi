@@ -53,7 +53,7 @@ public class ProductService {
         Product product = findById(productId);
 
         if (product.getCurrentStock() < movementRequest.getQuantity()) {
-            throw new IllegalArgumentException("Estoque insuficiente para a retirada.");
+            throw new IllegalArgumentException("stock lower than current stock.");
         }
 
         int newStock = product.getCurrentStock() - movementRequest.getQuantity();

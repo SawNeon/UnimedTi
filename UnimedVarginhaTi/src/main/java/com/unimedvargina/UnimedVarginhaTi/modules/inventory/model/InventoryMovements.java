@@ -2,6 +2,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.inventory.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Sector;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,7 +27,7 @@ public class InventoryMovements extends BaseEntity {
     private String responsible;
 
     @Column(nullable = false)
-    private String sector;
+    private Sector sector;
 
     @Column(nullable = false)
     private String type;
