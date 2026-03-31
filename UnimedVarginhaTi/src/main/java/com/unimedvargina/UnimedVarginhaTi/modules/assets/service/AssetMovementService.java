@@ -34,12 +34,12 @@ public class AssetMovementService {
 
         movement.setAsset(asset);
 
-        movement.setResponsibleManager(getUsuarioLogado());
+        movement.setResponsibleManager(getUserLogin());
 
         return assetMovementsRepository.save(movement);
     }
 
-    private User getUsuarioLogado() {
+    private User getUserLogin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {

@@ -28,7 +28,8 @@ public class AssetMovements extends BaseEntity {
     @Column(nullable = false)
     private String responsible;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsible_manager", nullable = false)
     private User responsibleManager;
 
     @Column(nullable = false)
