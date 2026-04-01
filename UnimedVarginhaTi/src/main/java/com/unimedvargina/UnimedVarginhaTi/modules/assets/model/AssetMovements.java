@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Sector;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,8 +33,9 @@ public class AssetMovements extends BaseEntity {
     @JoinColumn(name = "responsible_manager", nullable = false)
     private User responsibleManager;
 
-    @Column(nullable = false)
-    private String sector;
+    @ManyToOne
+    @JoinColumn(name = "sector_id")
+    private Sector sector;
 
     private LocalDate expectedReturnDate;
 

@@ -1,9 +1,8 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.orders.model;
 
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Sector;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,8 +17,9 @@ public class Order extends BaseEntity {
     @Column(updatable = false)
     private LocalDateTime orderDate;
 
-    @Column(updatable = false)
-    private String Sector;
+    @ManyToOne
+    @JoinColumn(name = "sector_id")
+    private Sector Sector;
 
     @Column(updatable = false)
     private String type;

@@ -1,5 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.users.model;
 
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Sector;
+import com.unimedvargina.UnimedVarginhaTi.shared.repository.SectorRepository;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,6 +29,10 @@ public class User implements UserDetails {
     private String name;
 
     private String email;
+
+    @ManyToOne
+    @JoinColumn(name = "sector_id")
+    private Sector sector;
 
     private String login;
     private String password;
