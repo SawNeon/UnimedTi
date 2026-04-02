@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { AssetService } from '../services/AssetService';
 import type { AssetDTO } from '../types/Asset';
+import { SectorService } from '../../../shared/services/sectorService';
+import type { SectorDTO } from '../../../shared/types/Sector';
 import styles from './AssetMovement.module.css';
 import { ArrowsLeftRight, Package } from '@phosphor-icons/react';
 
@@ -12,6 +14,7 @@ interface AssetMovementProps {
 
 export function AssetMovement({ onSuccess }: AssetMovementProps) {
   const [Assets, setAssets] = useState<AssetDTO[]>([]);
+  const [Sectors, setSectors] = useState<SectorDTO[]>([]);
   const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   
@@ -25,6 +28,8 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
       try {
         const data = await AssetService.getAll();
         setAssets(data);
+        const dataSectors = await SectorService.getAll();
+        setSectors(dataSectors);
       } catch (error) {
         console.error("Erro ao buscar ativos", error);
         alert("Erro ao carregar a lista de ativos.");
@@ -47,7 +52,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
         id: selectedAssetId,
         reason, 
         responsible,
-        sector,
+        sector: { id: sector },
         expectedReturnDate: expectedReturnDate || undefined,
         type: 'OUT'
       });
@@ -122,14 +127,19 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
                  <div style={{gap: '20px' }}>
                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                       <label className={styles.label}>Setor</label>
-                      <input
-                          className={styles.input}
-                          type="text"
-                          value={sector} 
-                          onChange={(e) => setSector(e.target.value)} 
-                          placeholder="Ex: TI, RH..."
+                      <select 
+                          className={styles.select}
+                          value={sector}
+                          onChange={(e) => setSector(e.target.value)}
                           required
-                      />
+                      >
+                          <option value="" disabled>Escolha um setor...</option>
+                          {Sectors.map(s => (
+                              <option key={s.id} value={s.id}>
+                                  {s.name}
+                              </option>
+                          ))}
+                      </select>
                    </div>
                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                       <label className={styles.label}>Data de retorno esperada</label>

@@ -18,7 +18,7 @@ public class Sector extends BaseEntity {
     private Enterprise enterprise;
 
     @Column(nullable = false)
-    private String Group;
+    private String groupName;
 
     @Column(nullable = false)
     private Integer costCenterCode;

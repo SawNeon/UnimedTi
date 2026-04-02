@@ -11,5 +11,5 @@ export interface MovementPayload {
   quantity: number;
   reason: string;
   responsible: string;
-  sector: string;
+  sector: { id: string };
 }

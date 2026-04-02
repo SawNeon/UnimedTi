@@ -5,12 +5,15 @@ import { ProductService } from '../services/ProductService';
 import type { ProductDTO } from '../types/Product';
 import styles from './ProductMovement.module.css';
 import { ArrowsLeftRight, Package } from '@phosphor-icons/react';
+import type { SectorDTO } from '../../../shared/types/Sector';
+import { SectorService } from '../../../shared/services/sectorService';
 
 interface ProductMovementProps {
   onSuccess: () => void;
 }
 
 export function ProductMovement({ onSuccess }: ProductMovementProps) {
+  const [Sectors, setSectors] = useState<SectorDTO[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [quantity, setQuantity] = useState<number | ''>('');
@@ -24,6 +27,8 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
     const fetchProducts = async () => {
       try {
         const data = await ProductService.getAll();
+        const dataSectors = await SectorService.getAll();
+        setSectors(dataSectors);
         setProducts(data);
       } catch (error) {
         console.error("Erro ao buscar produtos", error);
@@ -54,7 +59,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
           quantity: Number(quantity),
           reason,
           responsible,
-          sector
+          sector: { id: sector }
         })  ;
         alert('Entrada de estoque registrada com sucesso!');
       } else {
@@ -63,7 +68,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
           quantity: Number(quantity),
           reason,
           responsible,
-          sector
+          sector: { id: sector }
         });     
         alert('Saída de estoque registrada com sucesso!');
       }
@@ -178,14 +183,19 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label className={styles.label}>Setor</label>
-                    <input
-                        className={styles.input}
-                        type="text"
-                        value={sector} 
-                        onChange={(e) => setSector(e.target.value)} 
-                        placeholder="Ex: TI"
-                        required
-                    />
+                     <select 
+                          className={styles.select}
+                          value={sector}
+                          onChange={(e) => setSector(e.target.value)}
+                          required
+                      >
+                          <option value="" disabled>Escolha um setor...</option>
+                          {Sectors.map(s => (
+                              <option key={s.id} value={s.id}>
+                                  {s.name}
+                              </option>
+                          ))}
+                      </select>
                  </div>
              </div>
              
