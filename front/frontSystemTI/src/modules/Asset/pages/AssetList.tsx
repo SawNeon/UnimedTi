@@ -22,8 +22,8 @@ export function AssetList({ onEdit }: AssetListProps) {
             const data = await AssetService.getAll();
             setAssets(data);
         } catch (error) {
-            console.error("Erro ao carregar ativos:", error);
-            alert("Erro ao conectar com a API.");
+            console.error("Error loading assets:", error);
+            alert("Error connecting to the API.");
         } finally {
             setLoading(false);
         }   
@@ -36,8 +36,8 @@ export function AssetList({ onEdit }: AssetListProps) {
                 alert("Ativo devolvido com sucesso!");
                 loadAssets();
             } catch (error) {
-                console.error("Erro ao devolver ativo:", error);
-                alert("Erro ao conectar com a API.");
+                console.error("Error returning asset:", error);
+                alert("Error connecting to the API.");
             }
     }
 

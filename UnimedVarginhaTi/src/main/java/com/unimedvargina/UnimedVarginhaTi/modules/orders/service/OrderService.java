@@ -41,9 +41,6 @@ public class OrderService {
 
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if(invoiceFile != null && !invoiceFile.isEmpty()) {
-            throw new RuntimeException("Invoice file is empty");
-        }
         String invoicePath = fileStorageService.storeFile(invoiceFile, "orders/invoices");
         order.setInvoice(invoicePath);
 

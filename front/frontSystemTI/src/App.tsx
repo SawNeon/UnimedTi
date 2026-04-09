@@ -9,7 +9,9 @@ import { AssetForm } from './modules/Asset/pages/AssetForm';
 import { AssetList } from './modules/Asset/pages/AssetList';
 import { AssetMovement } from './modules/Asset/pages/AssetMovement';
 
-import { Package, Desktop, House, SignOut } from '@phosphor-icons/react';
+import { OrderList } from './modules/Order/pages/OrderList';
+
+import { Package, Desktop, House, SignOut, ShoppingCart } from '@phosphor-icons/react';
 import { AuthService } from './shared/services/authService';
 import { Login } from './modules/Auth/pages/Login';
 
@@ -17,14 +19,14 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AuthService.isAuthenticated());
 
-  const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'>('welcome');
+  const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'| 'order'>('welcome');
 
   const [activeScreen, setActiveScreen] = useState<'list' | 'form' | 'movement'>('list');
 
   const [editingItem, setEditingItem] = useState<any>(null);
 
 
-  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset') => {
+  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset'| 'order') => {
     setActiveModule(module);
     setActiveScreen('list');
     setEditingItem(null);
@@ -82,6 +84,10 @@ function App() {
       if (activeScreen === 'movement') return <AssetMovement onSuccess={handleBackToList} />;
       return <AssetList onEdit={handleEdit} />;
     }
+
+    if(activeModule === 'order'){
+      return <OrderList />;
+    }
   };
 
   return (
@@ -104,6 +110,11 @@ function App() {
         <button onClick={() => handleSelectModule('asset')} style={getSidebarButtonStyle(activeModule === 'asset')}>
           <Desktop size={20} /> Ativos
         </button>
+
+        <button onClick={() => handleSelectModule('order')} style={getSidebarButtonStyle(activeModule === 'order')}>
+          <ShoppingCart size={20} /> Pedidos
+        </button>
+
         <div style={{ marginTop: 'auto' }}>
           <button onClick={handleLogout} style={getSidebarButtonStyle(false)}>
             <SignOut size={20} /> Sair
@@ -120,6 +131,8 @@ function App() {
             {activeModule === 'welcome' && 'Página Inicial'}
             {activeModule === 'stock' && 'Gestão de Estoque'}
             {activeModule === 'asset' && 'Gestão de Ativos'}
+            {activeModule === 'order' && 'Pedidos de Compras'}
+
           </h2>
 
           {activeModule !== 'welcome' && (
@@ -129,11 +142,11 @@ function App() {
               </button>
 
               <button onClick={handleNewItem} style={getHeaderButtonStyle(activeScreen === 'form')}>
-                {activeModule === 'stock' ? '+ Novo Produto' : '+ Novo Ativo'}
+                {activeModule === 'stock' ? '+ Novo Produto' : activeModule === 'asset' ? '+ Novo Ativo' : '+ Novo Pedido'}
               </button>
 
               <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
-                {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
+                {activeModule === 'stock' ? 'Movimentações' : activeModule === 'asset' ? 'Empréstimos' : 'Movimentações'}
               </button>
             </nav>
           )}

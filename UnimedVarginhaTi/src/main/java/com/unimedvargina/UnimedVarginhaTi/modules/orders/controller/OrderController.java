@@ -41,15 +41,11 @@ public class OrderController {
     @PatchMapping(value = "/{id}/deliver", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Order> deliverOrder(
             @PathVariable UUID id,
-            @RequestPart("invoiceFile") MultipartFile invoiceFile
+            @RequestPart(value = "invoiceFile", required = false) MultipartFile invoiceFile
     ){
         Order updateOrder = orderService.deliverOrder(id, invoiceFile);
         return ResponseEntity.ok(updateOrder);
     }
-
-
-
-    
 
     @GetMapping
     public List<Order> listAll()
