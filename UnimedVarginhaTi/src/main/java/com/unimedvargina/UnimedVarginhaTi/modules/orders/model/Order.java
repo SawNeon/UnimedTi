@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "purchase_orders")
 @Getter @Setter @NoArgsConstructor
 public class Order extends BaseEntity {
 
@@ -19,19 +19,26 @@ public class Order extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "sector_id")
-    private Sector Sector;
+    private Sector sector;
 
     @Column(updatable = false)
     private String type;
 
-    @Column(updatable = false)
+    @Column(columnDefinition = "TEXT", updatable = false)
     private String description;
 
-    @Column(updatable = false)
+    @Enumerated(EnumType.STRING)
     private OrderStatus status;
+
+    @Column(updatable = false)
+    private Integer numberRequest;
+
+    @Column(length = 500, updatable = false)
+    private String request;
 
     private LocalDateTime expectedDeliveryDate;
 
+    @Column(length = 500)
     private String invoice;
 
     private LocalDateTime receivedDate;

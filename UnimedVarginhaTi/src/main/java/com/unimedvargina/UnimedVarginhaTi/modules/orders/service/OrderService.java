@@ -1,19 +1,55 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.orders.service;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.Order;
+import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.OrderStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.repository.OrderRepository;
+import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class OrderService {
 
     @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
     private OrderRepository orderRepository;
 
-    public Order save(Order order) {
+    @Transactional
+    public Order createOrder(Order orderData, MultipartFile requestFile) {
+
+        if (requestFile != null && !requestFile.isEmpty()) {
+            String requestPath = fileStorageService.storeFile(requestFile, "orders/requests");
+            orderData.setRequest(requestPath);
+        }
+
+        orderData.setOrderDate(LocalDateTime.now());
+        orderData.setStatus(OrderStatus.ORDERED);
+
+        return orderRepository.save(orderData);
+    }
+
+    @Transactional
+    public Order deliverOrder(UUID orderId, MultipartFile invoiceFile) {
+
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if(invoiceFile != null && !invoiceFile.isEmpty()) {
+            throw new RuntimeException("Invoice file is empty");
+        }
+        String invoicePath = fileStorageService.storeFile(invoiceFile, "orders/invoices");
+        order.setInvoice(invoicePath);
+
+        order.setStatus(OrderStatus.DELIVERED);
+        order.setReceivedDate(LocalDateTime.now());
+
         return orderRepository.save(order);
     }
 
