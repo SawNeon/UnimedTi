@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { OrderDTO } from "../types/Order";
 import { OrderService } from "../services/OrderService";
 import styles from "./OrderList.module.css";
-import { CheckFatIcon, FileIcon } from "@phosphor-icons/react";
+import { CheckFatIcon, FileIcon, FunnelIcon  } from "@phosphor-icons/react";
 import { SectorService } from "../../../shared/services/sectorService";
 import type { SectorDTO } from "../../../shared/types/Sector";
 import { DeliverModal } from "../components/DeliverModal";
@@ -10,6 +10,8 @@ import { DeliverModal } from "../components/DeliverModal";
 interface OrderWithSector extends Omit<OrderDTO, 'sector'> {
     sector?: (SectorDTO & { name: string });
 }
+
+
 
 interface OrderListProps { }
 
@@ -20,6 +22,7 @@ export function OrderList({ }: OrderListProps) {
 
     const [isDeliverModalOpen, setIsDeliverModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+    const [filterOrdered, setFilterOrdered] = useState<boolean>(false);
 
     useEffect(() => {
         loadOrders();
@@ -102,6 +105,18 @@ export function OrderList({ }: OrderListProps) {
         String(o.numberRequest).toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleFilterOrdered = () => {
+        if(filterOrdered) {
+            loadOrders();
+            setFilterOrdered(false);
+            return;
+        }else {
+            const onlyOrdered = orders.filter(o => o.status === "ORDERED");
+            setOrders(onlyOrdered);
+            setFilterOrdered(true);
+        }
+    };
+
     if (loading) {
         return (
             <div className={styles.card}>
@@ -115,6 +130,13 @@ export function OrderList({ }: OrderListProps) {
             <div className={styles.card}>
                 <div className={styles.toolbar}>
                     <h2 className={styles.title}>Cadastro de Pedidos</h2>
+                    <button
+                        className={styles.filterbtn}
+                        onClick={handleFilterOrdered}
+                        title="Filter Ordered Orders"
+                    >
+                        <FunnelIcon/>
+                    </button>
                     <input
                         type="text"
                         placeholder="Busca de pedido..."

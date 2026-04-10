@@ -29,6 +29,15 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
+.filterbtn {
+  padding: 24px;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 .title {
   font-size: 22px;
   color: #333;
