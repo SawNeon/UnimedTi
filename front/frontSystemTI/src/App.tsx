@@ -14,6 +14,7 @@ import { OrderList } from './modules/Order/pages/OrderList';
 import { Package, Desktop, House, SignOut, ShoppingCart } from '@phosphor-icons/react';
 import { AuthService } from './shared/services/authService';
 import { Login } from './modules/Auth/pages/Login';
+import { OrderForm } from './modules/Order/pages/OrderForm';
 
 function App() {
 
@@ -86,6 +87,7 @@ function App() {
     }
 
     if(activeModule === 'order'){
+      if (activeScreen === 'form') return <OrderForm onSucess={handleBackToList} />;
       return <OrderList />;
     }
   };
@@ -144,10 +146,11 @@ function App() {
               <button onClick={handleNewItem} style={getHeaderButtonStyle(activeScreen === 'form')}>
                 {activeModule === 'stock' ? '+ Novo Produto' : activeModule === 'asset' ? '+ Novo Ativo' : '+ Novo Pedido'}
               </button>
-
-              <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
+              {activeModule !== 'order' && (
+                <button onClick={handleMovement} style={getHeaderButtonStyle(activeScreen === 'movement')}>
                 {activeModule === 'stock' ? 'Movimentações' : activeModule === 'asset' ? 'Empréstimos' : 'Movimentações'}
-              </button>
+                </button>
+              )}
             </nav>
           )}
         </header>

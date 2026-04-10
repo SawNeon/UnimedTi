@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { OrderDTO } from "../type/Order";
+import type { OrderDTO } from "../types/Order";
 import { OrderService } from "../services/OrderService";
 import styles from "./OrderList.module.css";
 import { CheckFatIcon, FileIcon } from "@phosphor-icons/react";
@@ -11,9 +11,9 @@ interface OrderWithSector extends Omit<OrderDTO, 'sector'> {
     sector?: (SectorDTO & { name: string });
 }
 
-interface OrderListProps {}
+interface OrderListProps { }
 
-export function OrderList({}: OrderListProps) {
+export function OrderList({ }: OrderListProps) {
     const [orders, setOrders] = useState<OrderWithSector[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
@@ -30,7 +30,7 @@ export function OrderList({}: OrderListProps) {
             const data = await OrderService.getAll();
             const dataSectors = await SectorService.getAll();
             const sectorsMap: Record<string, string> = {};
-            
+
             dataSectors.forEach((sector: SectorDTO) => {
                 if (sector.id) {
                     sectorsMap[sector.id] = sector.name;
@@ -39,11 +39,11 @@ export function OrderList({}: OrderListProps) {
 
             const ordersWithSectorName = data.map((order: OrderDTO) => ({
                 ...order,
-                sector: order.sector?.id && sectorsMap[order.sector.id] 
-                    ? { ...order.sector, name: sectorsMap[order.sector.id] } 
+                sector: order.sector?.id && sectorsMap[order.sector.id]
+                    ? { ...order.sector, name: sectorsMap[order.sector.id] }
                     : order.sector
             }));
-            
+
             setOrders(ordersWithSectorName);
         } catch (error) {
             console.error("Error loading orders:", error);
@@ -60,7 +60,7 @@ export function OrderList({}: OrderListProps) {
     };
     const handleConfirmDelivery = async (file: File | null) => {
         if (!selectedOrderId) return;
-        
+
         try {
             await OrderService.deliver(selectedOrderId, file);
             alert("Pedido marcado como entregue!");
@@ -73,7 +73,7 @@ export function OrderList({}: OrderListProps) {
     };
 
     const handleViewFile = async (id: string | undefined) => {
-        if (!id) return; 
+        if (!id) return;
         try {
             const fileBlob = await OrderService.viwerFile(id);
             const fileURL = URL.createObjectURL(fileBlob);
@@ -97,7 +97,7 @@ export function OrderList({}: OrderListProps) {
         }
     };
 
-    const filteredOrders = orders.filter(o => 
+    const filteredOrders = orders.filter(o =>
         o.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         String(o.numberRequest).toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -111,7 +111,7 @@ export function OrderList({}: OrderListProps) {
     }
 
     return (
-        <div className={styles.pageContainer}>    
+        <div className={styles.pageContainer}>
             <div className={styles.card}>
                 <div className={styles.toolbar}>
                     <h2 className={styles.title}>Cadastro de Pedidos</h2>
@@ -139,55 +139,56 @@ export function OrderList({}: OrderListProps) {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredOrders.map(order => (
-                            <tr key={order.id || Math.random()}>
-                                <td>{order.numberRequest}</td>
-                                <td>{new Date(order.orderDate).toLocaleDateString() || '-'}</td>
-                                <td>{order.type}</td>
-                                <td>{order.sector?.name || order.sector?.id}</td>
-                                <td>{order.description}</td>
-                                <td>{order.status == 'ORDERED' ? 'Pedido Realizado' : order.status === 'DELIVERED' ? 'Entregue' : order.status === 'CANCELLED' ? 'Cancelado' : '-'}</td>
-                                <td>{order.expectedDeliveryDate == null ? '-' : new Date(order.expectedDeliveryDate).toLocaleDateString()}</td>
-                                <td className={styles.fileCell}>
-                                    {order.request && (
-                                        <button 
-                                            className={styles.fileBtn} 
-                                            onClick={() => handleViewFile(order.request)}
-                                            title="Visualizar solicitação"
-                                        >
-                                            <FileIcon size={20} />
-                                        </button>
-                                    )}
+                        {filteredOrders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
+                            .map(order => (
+                                <tr key={order.id || Math.random()}>
+                                    <td>{order.numberRequest}</td>
+                                    <td>{new Date(order.orderDate).toLocaleDateString() || '-'}</td>
+                                    <td>{order.type === 'HARDWARE' ? 'Hardware' : order.type === 'SOFTWARE' ? 'Software' : order.type === 'PERIPHERALS' ? 'Periféricos' : order.type === 'MAINTENANCE' ? 'Manutenção' : order.type === 'SUPPLY' ? 'Suprimento' : '-'}</td>
+                                    <td>{order.sector?.name || order.sector?.id ? order.sector.name || order.sector.id : '-'}</td>
+                                    <td>{order.description}</td>
+                                    <td>{order.status == 'ORDERED' ? 'Pedido Realizado' : order.status === 'DELIVERED' ? 'Entregue' : order.status === 'CANCELLED' ? 'Cancelado' : '-'}</td>
+                                    <td>{order.expectedDeliveryDate == null ? '-' : new Date(order.expectedDeliveryDate).toLocaleDateString()}</td>
+                                    <td className={styles.fileCell}>
+                                        {order.request && (
+                                            <button
+                                                className={styles.fileBtn}
+                                                onClick={() => handleViewFile(order.request)}
+                                                title="Visualizar solicitação"
+                                            >
+                                                <FileIcon size={20} />
+                                            </button>
+                                        )}
 
-                                    {order.invoice && (
-                                        <button 
-                                            className={styles.fileBtn} 
-                                            onClick={() => handleViewFile(order.invoice)}
-                                            title="Visualizar fatura"
+                                        {order.invoice && (
+                                            <button
+                                                className={styles.fileBtn}
+                                                onClick={() => handleViewFile(order.invoice)}
+                                                title="Visualizar fatura"
+                                            >
+                                                <FileIcon size={20} />
+                                            </button>
+                                        )}
+                                    </td>
+                                    <td className={styles.actionCell}>
+                                        <button
+                                            className={styles.actionBtn}
+                                            onClick={() => handleOpenDeliveryModal(order)}
+                                            title="Confirmar Entrega"
                                         >
-                                            <FileIcon size={20} />
+                                            <CheckFatIcon size={20} />
                                         </button>
-                                    )}
-                                </td>
-                                <td className={styles.actionCell}>
-                                    <button 
-                                        className={styles.actionBtn} 
-                                        onClick={() => handleOpenDeliveryModal(order)}
-                                        title="Confirmar Entrega"
-                                    >
-                                        <CheckFatIcon size={20} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
             </div>
 
-            <DeliverModal 
-                isOpen={isDeliverModalOpen} 
-                onClose={() => setIsDeliverModalOpen(false)} 
-                onConfirm={handleConfirmDelivery} 
+            <DeliverModal
+                isOpen={isDeliverModalOpen}
+                onClose={() => setIsDeliverModalOpen(false)}
+                onConfirm={handleConfirmDelivery}
             />
         </div>
     );

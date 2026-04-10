@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,7 +37,7 @@ public class Order extends BaseEntity {
     @Column(length = 500, updatable = false)
     private String request;
 
-    private LocalDateTime expectedDeliveryDate;
+    private LocalDate expectedDeliveryDate;
 
     @Column(length = 500)
     private String invoice;

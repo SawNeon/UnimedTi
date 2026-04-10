@@ -1,5 +1,5 @@
 import { api } from '../../../shared/services/api';
-import type { OrderDTO } from '../type/Order';
+import type { OrderDTO } from '../types/Order';
 
 export const OrderService = {
     create: async (orderData: Partial<OrderDTO>, requestFile: File | null) => {
