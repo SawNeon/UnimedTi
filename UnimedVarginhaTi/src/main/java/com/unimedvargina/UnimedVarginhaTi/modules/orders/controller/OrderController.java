@@ -6,6 +6,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.orders.repository.OrderReposit
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.service.OrderService;
 import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -48,8 +49,11 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<Order> listAll()
-    { return orderService.findAll();}
-
-
+    public ResponseEntity<Page<Order>> getOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Order> ordersPage = orderService.getAllOrdersPaginated(page, size);
+        return ResponseEntity.ok(ordersPage);
+    }
 }

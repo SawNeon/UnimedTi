@@ -19,8 +19,8 @@ export const OrderService = {
         return response.data;
     },
     
-    getAll: async () => {
-        const response = await api.get('/orders');
+    getAll: async (page: number, size: number) => {
+        const response = await api.get(`/orders?page=${page}&size=${size}`);
         return response.data;
     },
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { OrderDTO } from "../types/Order";
 import { OrderService } from "../services/OrderService";
 import styles from "./OrderList.module.css";
-import { CheckFatIcon, FileIcon, FunnelIcon  } from "@phosphor-icons/react";
+import { CheckFatIcon, FileIcon, FunnelIcon } from "@phosphor-icons/react";
 import { SectorService } from "../../../shared/services/sectorService";
 import type { SectorDTO } from "../../../shared/types/Sector";
 import { DeliverModal } from "../components/DeliverModal";
@@ -23,14 +23,23 @@ export function OrderList({ }: OrderListProps) {
     const [isDeliverModalOpen, setIsDeliverModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
     const [filterOrdered, setFilterOrdered] = useState<boolean>(false);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+
+   
 
     useEffect(() => {
         loadOrders();
     }, []);
 
     const loadOrders = async () => {
+        setLoading(true);
         try {
-            const data = await OrderService.getAll();
+            const response = await OrderService.getAll(currentPage - 1, itemsPerPage);
+            const data = response.content; 
+            setTotalPages(response.totalPages);
+
             const dataSectors = await SectorService.getAll();
             const sectorsMap: Record<string, string> = {};
 
@@ -106,15 +115,20 @@ export function OrderList({ }: OrderListProps) {
     );
 
     const handleFilterOrdered = () => {
-        if(filterOrdered) {
+        if (filterOrdered) {
             loadOrders();
             setFilterOrdered(false);
             return;
-        }else {
+        } else {
             const onlyOrdered = orders.filter(o => o.status === "ORDERED");
             setOrders(onlyOrdered);
             setFilterOrdered(true);
         }
+    };
+
+    const paginate = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+        loadOrders();
     };
 
     if (loading) {
@@ -130,13 +144,6 @@ export function OrderList({ }: OrderListProps) {
             <div className={styles.card}>
                 <div className={styles.toolbar}>
                     <h2 className={styles.title}>Cadastro de Pedidos</h2>
-                    <button
-                        className={styles.filterbtn}
-                        onClick={handleFilterOrdered}
-                        title="Filter Ordered Orders"
-                    >
-                        <FunnelIcon/>
-                    </button>
                     <input
                         type="text"
                         placeholder="Busca de pedido..."
@@ -154,7 +161,13 @@ export function OrderList({ }: OrderListProps) {
                             <th>Categoria</th>
                             <th>Setor</th>
                             <th>Descrição</th>
-                            <th>Status</th>
+                            <th>Status <button
+                                className={styles.filterbtn}
+                                onClick={handleFilterOrdered}
+                                title="Filter Ordered Orders"
+                            >
+                                <FunnelIcon />
+                            </button></th>
                             <th>Data de Entrega</th>
                             <th>Arquivos</th>
                             <th>Ações</th>
@@ -205,6 +218,14 @@ export function OrderList({ }: OrderListProps) {
                             ))}
                     </tbody>
                 </table>
+
+                <div className={styles.pagination}>
+                    {[...Array(totalPages)].map((_, i) => (
+                        <button className={styles.pageButton} key={i} onClick={() => paginate(i + 1)}>
+                            {i + 1}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <DeliverModal

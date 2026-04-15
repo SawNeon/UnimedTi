@@ -6,6 +6,8 @@ import com.unimedvargina.UnimedVarginhaTi.modules.orders.repository.OrderReposit
 import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,5 +54,10 @@ public class OrderService {
 
     public List<Order> findAll() {
         return orderRepository.findAll();
+    }
+
+
+    public Page<Order> getAllOrdersPaginated(int page, int size) {
+        return orderRepository.findAll(PageRequest.of(page, size));
     }
 }
