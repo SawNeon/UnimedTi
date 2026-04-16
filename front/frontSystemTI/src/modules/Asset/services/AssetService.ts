@@ -7,8 +7,8 @@ export const AssetService = {
         const reponse = await api.post('/assets', asset);
         return reponse.data;
     },
-    getAll: async () => {
-        const response = await api.get('/assets');
+    getAll: async (page: number, size: number) => {
+        const response = await api.get(`/assets?page=${page}&size=${size}`);
         return response.data;
     },
     delete: async (id: string) => {

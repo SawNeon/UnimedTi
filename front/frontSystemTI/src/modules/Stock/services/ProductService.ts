@@ -7,8 +7,8 @@ export const ProductService = {
         return reponse.data;
     },
 
-    getAll: async () => {
-        const response = await api.get('/products');
+    getAll: async (page: number, size: number) => {
+        const response = await api.get(`/products?page=${page}&size=${size}`);
         return response.data;
     },
 

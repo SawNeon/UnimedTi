@@ -27,18 +27,19 @@ export function OrderList({ }: OrderListProps) {
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
 
-   
+
 
     useEffect(() => {
-        loadOrders();
-    }, []);
+        loadOrders(currentPage);
+    }, [currentPage]);
 
-    const loadOrders = async () => {
+    const loadOrders = async (page: number) => {
         setLoading(true);
         try {
-            const response = await OrderService.getAll(currentPage - 1, itemsPerPage);
-            const data = response.content; 
+            const response = await OrderService.getAll(page - 1, itemsPerPage);
+            const data = response.content;
             setTotalPages(response.totalPages);
+
 
             const dataSectors = await SectorService.getAll();
             const sectorsMap: Record<string, string> = {};
@@ -77,7 +78,7 @@ export function OrderList({ }: OrderListProps) {
             await OrderService.deliver(selectedOrderId, file);
             alert("Pedido marcado como entregue!");
             setIsDeliverModalOpen(false);
-            loadOrders();
+            loadOrders(currentPage);
         } catch (error) {
             console.error("Erro ao entregar pedido:", error);
             alert("Erro ao confirmar entrega.");
@@ -102,7 +103,7 @@ export function OrderList({ }: OrderListProps) {
         if (window.confirm("Deseja realmente excluir este pedido?")) {
             try {
                 await OrderService.delete(id);
-                loadOrders();
+                loadOrders(currentPage);
             } catch (error) {
                 console.error("Erro ao deletar pedido:", error);
             }
@@ -115,20 +116,11 @@ export function OrderList({ }: OrderListProps) {
     );
 
     const handleFilterOrdered = () => {
-        if (filterOrdered) {
-            loadOrders();
-            setFilterOrdered(false);
-            return;
-        } else {
-            const onlyOrdered = orders.filter(o => o.status === "ORDERED");
-            setOrders(onlyOrdered);
-            setFilterOrdered(true);
-        }
+        setFilterOrdered(!filterOrdered);
     };
 
     const paginate = (pageNumber: number) => {
         setCurrentPage(pageNumber);
-        loadOrders();
     };
 
     if (loading) {
@@ -221,7 +213,11 @@ export function OrderList({ }: OrderListProps) {
 
                 <div className={styles.pagination}>
                     {[...Array(totalPages)].map((_, i) => (
-                        <button className={styles.pageButton} key={i} onClick={() => paginate(i + 1)}>
+                        <button
+                            key={i}
+                            className={`${styles.pageButton} ${currentPage === i + 1 ? styles.activeButton : ''}`}
+                            onClick={() => paginate(i + 1)}
+                        >
                             {i + 1}
                         </button>
                     ))}

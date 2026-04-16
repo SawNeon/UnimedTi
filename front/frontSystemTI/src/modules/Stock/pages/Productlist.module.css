@@ -162,3 +162,32 @@
   background-color: #d32f2f;
   color: white;
 }
+
+.pageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  color: #333;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.pageButton:hover:not(:disabled) {
+  border-color: #3a7d71;
+  color: #3a7d71;
+  background-color: #f4f9f7;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  margin: 10px 20px 5px 20px;
+}

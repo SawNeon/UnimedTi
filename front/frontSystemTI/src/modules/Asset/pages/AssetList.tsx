@@ -5,50 +5,59 @@ import styles from "./AssetList.module.css";
 import { ArrowBendDownLeftIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 
 interface AssetListProps {
-  onEdit: (asset: AssetDTO) => void;
+    onEdit: (asset: AssetDTO) => void;
 }
 
 export function AssetList({ onEdit }: AssetListProps) {
     const [assets, setAssets] = useState<AssetDTO[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
     useEffect(() => {
-        loadAssets();
-    }, []);
+        loadAssets(currentPage);
+    }, [currentPage]);
 
-    const loadAssets = async () => {
+    const loadAssets = async (page: number) => {
         try {
-            const data = await AssetService.getAll();
+            const response= await AssetService.getAll(page - 1, itemsPerPage);
+            const data = response.content;
             setAssets(data);
+            setTotalPages(response.totalPages);
         } catch (error) {
             console.error("Error loading assets:", error);
             alert("Error connecting to the API.");
         } finally {
             setLoading(false);
-        }   
+        }
     }
 
     const handleReturn = async (id: string) => {
-            try {
-                await AssetService.returnAsset(id);
-                setAssets(prev => prev.filter(a => a.id !== id));
-                alert("Ativo devolvido com sucesso!");
-                loadAssets();
-            } catch (error) {
-                console.error("Error returning asset:", error);
-                alert("Error connecting to the API.");
-            }
+        try {
+            await AssetService.returnAsset(id);
+            setAssets(prev => prev.filter(a => a.id !== id));
+            alert("Ativo devolvido com sucesso!");
+            loadAssets(currentPage);
+        } catch (error) {
+            console.error("Error returning asset:", error);
+            alert("Error connecting to the API.");
+        }
     }
 
-    const filteredAssets = assets.filter(a => 
+    const filteredAssets = assets.filter(a =>
         a.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <div className={styles.card}><p style={{padding: 20}}>Carregando...</p></div>;
+    const paginate = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    if (loading) return <div className={styles.card}><p style={{ padding: 20 }}>Carregando...</p></div>;
 
     return (
-        <div className={styles.pageContainer}>    
+        <div className={styles.pageContainer}>
             <div className={styles.card}>
                 <div className={styles.toolbar}>
                     <h2 className={styles.title}>Cadastro de Ativos</h2>
@@ -60,17 +69,17 @@ export function AssetList({ onEdit }: AssetListProps) {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                
+
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{width: '60px'}}>X</th>
+                                <th style={{ width: '60px' }}>X</th>
                                 <th>Nome</th>
-                                <th style={{textAlign: 'center'}}>Descrição</th>
-                                <th style={{textAlign: 'right'}}>Patrimônio</th>
-                                <th style={{textAlign: 'center'}}>Status</th>
-                                <th style={{textAlign: 'center'}}>Ações</th>
+                                <th style={{ textAlign: 'center' }}>Descrição</th>
+                                <th style={{ textAlign: 'right' }}>Patrimônio</th>
+                                <th style={{ textAlign: 'center' }}>Status</th>
+                                <th style={{ textAlign: 'center' }}>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -87,23 +96,23 @@ export function AssetList({ onEdit }: AssetListProps) {
                                             </div>
                                         </td>
                                         <td><strong>{assets.name}</strong></td>
-                                        <td style={{color: '#666'}}>{assets.description}</td>
-                                        <td style={{textAlign: 'right'}}>{assets.assetTag}</td>
-                                        <td style={{textAlign: 'right'}}>
-                                            {assets.status === 'AVAILABLE' ? <span className={styles.spanGreen}>Disponível</span> : 
-                                             assets.status === 'UNAVAILABLE' ? <span className={styles.spanRed}>Indisponível</span> : 
-                                             assets.status === 'INACTIVE' ? <span className={styles.spanRed}>Inativo</span> : 
-                                             assets.status}
+                                        <td style={{ color: '#666' }}>{assets.description}</td>
+                                        <td style={{ textAlign: 'right' }}>{assets.assetTag}</td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            {assets.status === 'AVAILABLE' ? <span className={styles.spanGreen}>Disponível</span> :
+                                                assets.status === 'UNAVAILABLE' ? <span className={styles.spanRed}>Indisponível</span> :
+                                                    assets.status === 'INACTIVE' ? <span className={styles.spanRed}>Inativo</span> :
+                                                        assets.status}
                                         </td>
-                                        <td className={styles.actionsCell} style={{textAlign: 'center'}}>
-                                            <button 
+                                        <td className={styles.actionsCell} style={{ textAlign: 'center' }}>
+                                            <button
                                                 className={`${styles.actionBtn} ${styles.editBtn}`}
-                                                onClick={() => onEdit(assets)} 
+                                                onClick={() => onEdit(assets)}
                                             >
                                                 <PencilSimpleIcon size={20} />
                                             </button>
-                                            
-                                            <button 
+
+                                            <button
                                                 className={`${styles.actionBtn}`}
                                                 onClick={() => assets.id && handleReturn(assets.id)}
                                                 title="return asset"
@@ -116,6 +125,18 @@ export function AssetList({ onEdit }: AssetListProps) {
                             )}
                         </tbody>
                     </table>
+
+                    <div className={styles.pagination}>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i}
+                                className={`${styles.pageButton} ${currentPage === i + 1 ? styles.activeButton : ''}`}
+                                onClick={() => paginate(i + 1)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

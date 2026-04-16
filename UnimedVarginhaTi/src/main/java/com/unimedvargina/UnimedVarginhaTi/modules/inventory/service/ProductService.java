@@ -4,9 +4,15 @@ import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.InventoryMovem
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.repository.InventoryMovementRepository;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.repository.ProductRepository;
+import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.Order;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +70,9 @@ public class ProductService {
         movementRepository.save(movementRequest);
 
         return repository.save(product);
+    }
+    public Page<Product> getAllProductsPaginated(int page, int size) {
+        return repository.findAll(PageRequest.of(page, size));
     }
 
 }

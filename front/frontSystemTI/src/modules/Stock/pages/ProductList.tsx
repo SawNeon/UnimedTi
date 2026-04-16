@@ -5,7 +5,7 @@ import styles from "./ProductList.module.css";
 import { Trash, PencilSimple } from "@phosphor-icons/react";
 
 interface ProductListProps {
-  onEdit: (product: ProductDTO) => void;
+    onEdit: (product: ProductDTO) => void;
 }
 
 export function ProductList({ onEdit }: ProductListProps) {
@@ -13,14 +13,21 @@ export function ProductList({ onEdit }: ProductListProps) {
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
 
-    useEffect(() => {
-        loadProducts();
-    }, []);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
-    const loadProducts = async () => {
+    useEffect(() => {
+        loadProducts(currentPage);
+    }, [currentPage]);
+
+    const loadProducts = async (page: number) => {
         try {
-            const data = await ProductService.getAll();
+            const response = await ProductService.getAll(page - 1, itemsPerPage);
+            const data = response.content;
             setProducts(data);
+            setTotalPages(response.totalPages);
+
         } catch (error) {
             console.error("Erro ao carregar produtos:", error);
             alert("Erro ao conectar com a API.");
@@ -41,15 +48,19 @@ export function ProductList({ onEdit }: ProductListProps) {
             }
         }
     }
+    
+    const paginate = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
 
-    const filteredProducts = products.filter(p => 
+    const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <div className={styles.card}><p style={{padding: 20}}>Carregando...</p></div>;
+    if (loading) return <div className={styles.card}><p style={{ padding: 20 }}>Carregando...</p></div>;
 
     return (
-        <div className={styles.pageContainer}>    
+        <div className={styles.pageContainer}>
             <div className={styles.card}>
                 <div className={styles.toolbar}>
                     <h2 className={styles.title}>Estoque de Produtos</h2>
@@ -66,19 +77,19 @@ export function ProductList({ onEdit }: ProductListProps) {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{width: '60px'}}>#</th>
+                                <th style={{ width: '60px' }}>#</th>
                                 <th>Nome</th>
                                 <th>Descrição</th>
-                                <th style={{textAlign: 'right'}}>Estoque</th>
-                                <th style={{textAlign: 'right'}}>Mínimo</th>
-                                <th style={{textAlign: 'center'}}>Status</th>
-                                <th style={{textAlign: 'center'}}>Ações</th> 
+                                <th style={{ textAlign: 'right' }}>Estoque</th>
+                                <th style={{ textAlign: 'right' }}>Mínimo</th>
+                                <th style={{ textAlign: 'center' }}>Status</th>
+                                <th style={{ textAlign: 'center' }}>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredProducts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} style={{textAlign: 'center', padding: 20}}>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: 20 }}>
                                         Nenhum produto encontrado.
                                     </td>
                                 </tr>
@@ -91,26 +102,26 @@ export function ProductList({ onEdit }: ProductListProps) {
                                             </div>
                                         </td>
                                         <td><strong>{product.name}</strong></td>
-                                        <td style={{color: '#666'}}>{product.description}</td>
-                                        <td style={{textAlign: 'right'}}>{product.currentStock}</td>
-                                        <td style={{textAlign: 'right'}}>{product.minStockLevel}</td>
-                                        <td style={{textAlign: 'center'}}>
+                                        <td style={{ color: '#666' }}>{product.description}</td>
+                                        <td style={{ textAlign: 'right' }}>{product.currentStock}</td>
+                                        <td style={{ textAlign: 'right' }}>{product.minStockLevel}</td>
+                                        <td style={{ textAlign: 'center' }}>
                                             {product.currentStock <= product.minStockLevel ? (
                                                 <span className={styles.lowStock}>BAIXO</span>
                                             ) : (
                                                 <span className={styles.goodStock}>OK</span>
                                             )}
                                         </td>
-                                        
-                                        <td className={styles.actionsCell} style={{textAlign: 'center'}}>
-                                            <button 
+
+                                        <td className={styles.actionsCell} style={{ textAlign: 'center' }}>
+                                            <button
                                                 className={`${styles.actionBtn} ${styles.editBtn}`}
-                                                onClick={() => onEdit(product)} 
+                                                onClick={() => onEdit(product)}
                                             >
                                                 <PencilSimple size={20} />
                                             </button>
-                                            
-                                            <button 
+
+                                            <button
                                                 className={`${styles.actionBtn} ${styles.deleteBtn}`}
                                                 onClick={() => product.id && handleDelete(product.id)}
                                                 title="Excluir"
@@ -123,6 +134,18 @@ export function ProductList({ onEdit }: ProductListProps) {
                             )}
                         </tbody>
                     </table>
+
+                    <div className={styles.pagination}>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i}
+                                className={`${styles.pageButton} ${currentPage === i + 1 ? styles.activeButton : ''}`}
+                                onClick={() => paginate(i + 1)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

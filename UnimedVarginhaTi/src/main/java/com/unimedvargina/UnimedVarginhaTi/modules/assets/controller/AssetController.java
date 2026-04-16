@@ -5,6 +5,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetMovements;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.service.AssetService;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +38,12 @@ public class AssetController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Asset>> findAll() {return ResponseEntity.ok(service.findAll());}
+    public ResponseEntity<Page<Asset>> getAssets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Asset> assetsPage = service.getAllAssetsPaginated(page, size);
+        return ResponseEntity.ok(assetsPage);
+    }
 
 }

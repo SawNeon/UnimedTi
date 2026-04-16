@@ -323,5 +323,5 @@
 .pagination {
   display: flex;
   gap: 8px;
-  margin-top: 20px;
+  margin: 10px 20px 5px 20px;
 }
