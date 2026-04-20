@@ -13,7 +13,7 @@ export function ProductList({ onEdit }: ProductListProps) {
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
 
-    const [itemsPerPage] = useState(10);
+    const [itemsPerPage] = useState(8);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
 

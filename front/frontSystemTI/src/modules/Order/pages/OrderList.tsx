@@ -97,19 +97,6 @@ export function OrderList({ }: OrderListProps) {
         }
     };
 
-
-    const handleDelete = async (id: string | undefined) => {
-        if (!id) return;
-        if (window.confirm("Deseja realmente excluir este pedido?")) {
-            try {
-                await OrderService.delete(id);
-                loadOrders(currentPage);
-            } catch (error) {
-                console.error("Erro ao deletar pedido:", error);
-            }
-        }
-    };
-
     const filteredOrders = orders.filter(o =>
         o.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         String(o.numberRequest).toLowerCase().includes(searchTerm.toLowerCase())

@@ -11,7 +11,7 @@ import { AssetMovement } from './modules/Asset/pages/AssetMovement';
 
 import { OrderList } from './modules/Order/pages/OrderList';
 
-import { Package, Desktop, House, SignOut, ShoppingCart } from '@phosphor-icons/react';
+import { Package, Desktop, House, SignOut, ShoppingCart, InvoiceIcon} from '@phosphor-icons/react';
 import { AuthService } from './shared/services/authService';
 import { Login } from './modules/Auth/pages/Login';
 import { OrderForm } from './modules/Order/pages/OrderForm';
@@ -20,14 +20,14 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AuthService.isAuthenticated());
 
-  const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'| 'order'>('welcome');
+  const [activeModule, setActiveModule] = useState<'welcome' | 'stock' | 'asset'| 'order' | 'financial'>('welcome');
 
   const [activeScreen, setActiveScreen] = useState<'list' | 'form' | 'movement'>('list');
 
   const [editingItem, setEditingItem] = useState<any>(null);
 
 
-  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset'| 'order') => {
+  const handleSelectModule = (module: 'welcome' | 'stock' | 'asset'| 'order'| 'financial') => {
     setActiveModule(module);
     setActiveScreen('list');
     setEditingItem(null);
@@ -117,6 +117,10 @@ function App() {
           <ShoppingCart size={20} /> Pedidos
         </button>
 
+        <button onClick={() => handleSelectModule('financial')} style={getSidebarButtonStyle(activeModule === 'financial')}>
+          <InvoiceIcon size={20} /> Financeiro
+        </button>
+
         <div style={{ marginTop: 'auto' }}>
           <button onClick={handleLogout} style={getSidebarButtonStyle(false)}>
             <SignOut size={20} /> Sair
@@ -134,6 +138,7 @@ function App() {
             {activeModule === 'stock' && 'Gestão de Estoque'}
             {activeModule === 'asset' && 'Gestão de Ativos'}
             {activeModule === 'order' && 'Pedidos de Compras'}
+            {activeModule === 'financial' && 'Gestão Financeira'}
 
           </h2>
 
