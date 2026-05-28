@@ -1,6 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.controller;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.ContractResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.service.ContractService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -15,16 +16,17 @@ public class ContractController {
     private ContractService contractService;
 
     @PostMapping
-    public Contract create(@RequestBody Contract contract) {
-        return contractService.save(contract);
+    public ResponseEntity<Contract> create(@RequestBody Contract contract) {
+        return ResponseEntity.ok(contractService.save(contract));
     }
 
     @GetMapping
-    public ResponseEntity<Page<Contract>> getContracts(
+    public ResponseEntity<Page<ContractResponseDTO>> getContracts(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam String month
     ) {
-        Page<Contract> productsPage = contractService.getAllContractsPaginated(page, size);
-        return ResponseEntity.ok(productsPage);
+        Page<ContractResponseDTO> contractsPage = contractService.getContractsWithInvoiceByMonth(page, size, month);
+        return ResponseEntity.ok(contractsPage);
     }
 }

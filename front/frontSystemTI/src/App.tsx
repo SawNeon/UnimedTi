@@ -15,6 +15,7 @@ import { Package, Desktop, House, SignOut, ShoppingCart, InvoiceIcon} from '@pho
 import { AuthService } from './shared/services/authService';
 import { Login } from './modules/Auth/pages/Login';
 import { OrderForm } from './modules/Order/pages/OrderForm';
+import { ContractList } from './modules/Financial/pages/ContractList';
 
 function App() {
 
@@ -90,6 +91,11 @@ function App() {
       if (activeScreen === 'form') return <OrderForm onSucess={handleBackToList} />;
       return <OrderList />;
     }
+    if(activeModule === 'financial'){
+      return <ContractList />;
+    }
+
+     return null;
   };
 
   return (

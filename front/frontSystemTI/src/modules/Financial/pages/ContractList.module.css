@@ -13,7 +13,7 @@
   border-radius: 8px; 
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
   width: 100%;
-  max-width: 1000px;
+  max-width: 2000px;
   overflow: hidden; 
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
   margin: 0;
@@ -50,7 +50,6 @@
   border-color: #3a7d71;
   box-shadow: 0 0 0 3px rgba(58, 125, 113, 0.1);
 }
-
 
 .tableContainer {
   overflow-x: auto;

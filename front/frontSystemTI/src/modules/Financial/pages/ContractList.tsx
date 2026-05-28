@@ -1,97 +1,199 @@
 import { useEffect, useState } from "react";
 import { ContractService } from "../services/ContractService";
-import type { ContractDTO } from "../types/Contract";
-import { EnterpriseService } from "../../../shared/services/enterpriseService";
-import type { EnterpriseDTO } from "../../../shared/types/Enterprise";
 import styles from "./ContractList.module.css";
-import { Trash, PencilSimple } from "@phosphor-icons/react";
+import type { ContractMonthResponse } from "../types/Contract";
+import {InvoiceModal} from "../components/InvoiceModal";
 
-interface ContractListProps extends Omit<ContractDTO, 'enterprise'> {
-    enterprise?:(ContractDTO & { enterprise: { name: string } });
-}
-
-interface ContractListProps {}
-
-export function ContractList({ }: ContractListProps) {
-    const [contracts, setContracts] = useState<ContractDTO[]>([]);
+export function ContractList() {
+    const [contracts, setContracts] = useState<ContractMonthResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
-    const [loading, setLoading] = useState<boolean>(true);
 
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+
+    const [loading, setLoading] = useState<boolean>(true);
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
-
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedContract, setSelectedContract] = useState<ContractMonthResponse | null>(null);
+    const [modalMode, setModalMode] = useState<'create' | 'view'>('create');
 
     useEffect(() => {
-        loadContracts(currentPage);
-    }, [currentPage]);
+        loadContractsAndInvoices(currentPage, selectedMonth);
+    }, [currentPage, selectedMonth]);
 
-    const loadContracts = async (page: number) => {
+    const loadContractsAndInvoices = async (page: number, month: string) => {
         setLoading(true);
         try {
-            const response = await ContractService.getAll(page - 1, itemsPerPage);
-            const data = response.content;
+            const response = await ContractService.getAll(page - 1, itemsPerPage, month);
+            setContracts(response.content);
             setTotalPages(response.totalPages);
-
-            const dataEnterprises = await EnterpriseService.getAll();
-            const enterprisesMap: Record<string, string> = {};
-
-            dataEnterprises.forEach((enterprise: EnterpriseDTO) => {
-                if (enterprise.id) {
-                    enterprisesMap[enterprise.id] = enterprise.name;
-                }
-            });
-
-            const contractsWithEnterpriseName = data.map((contract: ContractDTO) => ({
-                ...contract,
-                enterprise: contract.enterprise?.id && enterprisesMap[contract.enterprise.id]
-                    ? { ...contract.enterprise, name: enterprisesMap[contract.enterprise.id] }
-                    : contract.enterprise
-            }));
-            setContracts(contractsWithEnterpriseName);
         } catch (error) {
-            console.error("Error loading contracts:", error);
+            console.error("Erro ao carregar dados:", error);
         } finally {
             setLoading(false);
         }
     };
-    const paginate = (pageNumber: number) => {
-        setCurrentPage(pageNumber);
+
+    const handleLaunchInvoice = (contract: ContractMonthResponse) => {
+        setSelectedContract(contract);
+        setModalMode('create');
+        setModalOpen(true);
     };
 
-    if (loading) {
-        return (
-            <div className={styles.card}>
-                <p className={styles.loadingText}>Carregando...</p>
-            </div>
-        );
-    }
+    const handleViewInvoice = (contract: ContractMonthResponse) => {
+        setSelectedContract(contract);
+        setModalMode('view');
+        setModalOpen(true);
+    };
+
+    const handleGoToCostCenters = (invoiceId: string) => {
+        console.log("Navegar para a tela de Centros de Custo da Fatura:", invoiceId);
+    };
+
+    const getInvoiceValue = (invoice: ContractMonthResponse["currentInvoice"]) => {
+        return invoice ? Number(invoice.value ?? 0) : 0;
+    };
+
+    const getEnterpriseName = (contract: ContractMonthResponse) => {
+        return contract.enterpriseName || "Empresa não informada";
+    };
+
+    const filteredContracts = contracts.filter(contract =>
+        (contract.serviceDescription || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getEnterpriseName(contract).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalValue = filteredContracts.reduce((acc, contract) => {
+        return acc + getInvoiceValue(contract.currentInvoice);
+    }, 0);
 
     return (
         <div className={styles.pageContainer}>
             <div className={styles.card}>
                 <div className={styles.toolbar}>
-                    <h2 className={styles.title}>Contratos</h2>
-                    <input
-                        type="text"
-                        placeholder="Buscar contratos..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <h2 className={styles.title}>Controle de Lançamentos</h2>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <input
+                            type="month"
+                            className={styles.searchInput}
+                            style={{ minWidth: '150px' }}
+                            value={selectedMonth}
+                            onChange={(e) => {
+                                setSelectedMonth(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Buscar contratos..."
+                            className={styles.searchInput}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Empresa</th>
-                            <th>Tipo</th>
-                            <th>Descrição</th>
-                            <th>Status</th>
-                            <th>Laçamento</th>
-                            <th>Visualizar</th>
-                            
+                {loading ? (
+                    <div style={{ padding: '24px', textAlign: 'center' }}>
+                        <p>A carregar lançamentos do mês {selectedMonth}...</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className={styles.tableContainer}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Empresa</th>
+                                        <th>Tipo</th>
+                                        <th>Descrição</th>
+                                        <th>Status ({selectedMonth})</th>
+                                        <th>Valor da Nota</th>
+                                        <th>Centro de Custo</th>
+                                        <th>Lançamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredContracts.map((contract) => {
+                                        const hasInvoice = contract.currentInvoice !== null && contract.currentInvoice !== undefined;
+                                        const invoiceData = contract.currentInvoice;
+
+                                        return (
+                                            <tr key={contract.id}>
+                                                <td>{getEnterpriseName(contract)}</td>
+                                                <td>{contract.type}</td>
+                                                <td>{contract.serviceDescription}</td>
+                                                <td>
+                                                    {hasInvoice ? (
+                                                        <span className={styles.goodStock}>
+                                                            {invoiceData?.status === "ISSUED" ? "LANÇADO" : invoiceData?.status}
+                                                        </span>
+                                                    ) : (
+                                                        <span className={styles.lowStock}>PENDENTE</span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    {hasInvoice && invoiceData ? (
+                                                        `R$ ${Number(invoiceData.value).toFixed(2)}`
+                                                    ) : (
+                                                        "-"
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className={styles.pageButton}
+                                                        style={{ width: '100%', fontSize: '12px', padding: '4px' }}
+                                                        disabled={!invoiceData?.id}
+                                                        onClick={() => invoiceData?.id && handleGoToCostCenters(invoiceData.id)}
+                                                    >
+                                                        {hasInvoice ? "Abrir Centros" : "Bloqueado"}
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    {hasInvoice ? (
+                                                        <button className={styles.pageButton} style={{ borderColor: '#3a7d71', color: '#3a7d71' }} onClick={() => handleViewInvoice(contract)}>Visualizar</button>
+                                                    ) : (
+                                                        <button className={styles.pageButton} style={{ backgroundColor: '#e0f2f1', color: '#3a7d71', borderColor: '#3a7d71' }} onClick={() => handleLaunchInvoice(contract)}>Lançar Nota</button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
+                                        <td colSpan={3} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
+                                            {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div className={styles.pagination}>
+                            {[...Array(totalPages)].map((_, i) => (
+                                <button
+                                    key={i}
+                                    className={`${styles.pageButton} ${currentPage === i + 1 ? styles.activeButton : ''}`}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
             </div>
+
+            <InvoiceModal 
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                contract={selectedContract}
+                mode={modalMode}
+                onSuccess={() => loadContractsAndInvoices(currentPage, selectedMonth)} // Recarrega a tabela se salvar com sucesso
+            />
         </div>
     );
-
 }
