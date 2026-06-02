@@ -27,6 +27,21 @@ interface InvoiceModalProps {
     onSuccess?: () => void;
 }
 
+interface InvoiceViewResponse {
+    id: string;
+    contractId: string;
+    number: number;
+    totalAmount: number;
+    issueDate: string;
+    dueDate: string;
+    status: string;
+    items: {
+        sectorId: string;
+        sectorName: string;
+        allocation: number;
+    }[];
+}
+
 export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
     const [number, setNumber] = useState<number | "">("");
     const [totalAmount, setTotalAmount] = useState<number>(0);
@@ -38,7 +53,10 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
     const [items, setItems] = useState<ApportionmentItem[]>([]);
 
     useEffect(() => {
-        if (isOpen && contract && mode === 'create') {
+
+        if (!isOpen || !contract) return;
+
+        if (mode === 'create') {
             setNumber("");
             setTotalAmount(0);
             setIssueDate("");
@@ -46,11 +64,47 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
             setItems([]);
             setSelectedSectorId("");
 
+
             SectorService.getByContract(contract.id)
                 .then((data: SectorFromDB[]) => {
                     setAllSectors(data);
                 })
                 .catch(err => console.error("Erro ao buscar setores", err));
+            return;
+        }
+        if (mode === 'view') {
+            const invoiceId = contract.currentInvoice?.id;
+
+            if (!invoiceId) {
+                console.error("Invoice ID não encontrado para visualização.");
+                return;
+            }
+
+            api.get<InvoiceViewResponse>(`/invoices/${invoiceId}`)
+                .then((response) => {
+                    const invoice = response.data;
+
+                    setNumber(invoice.number);
+                    setTotalAmount(Number(invoice.totalAmount));
+                    setIssueDate(invoice.issueDate);
+                    setDueDate(invoice.dueDate);
+
+                    const mappedItems: ApportionmentItem[] = invoice.items.map(item => {
+                        const allocation = Number(item.allocation);
+                        const total = Number(invoice.totalAmount);
+
+                        return {
+                            sectorId: item.sectorId,
+                            sectorName: item.sectorName,
+                            allocation,
+                            percentage: total > 0 ? Number(((allocation / total) * 100).toFixed(2)) : 0,
+                            isManual: true
+                        };
+                    });
+
+                    setItems(mappedItems);
+                })
+                .catch(err => console.error("Erro ao buscar nota fiscal", err));
         }
     }, [isOpen, contract, mode]);
 
@@ -242,7 +296,7 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
                                     onClick={handleAddSector}
                                     disabled={!selectedSectorId}
                                 >
-                                    <Plus size={18} weight="bold" /> 
+                                    <Plus size={18} weight="bold" />
                                 </button>
                             </div>
                         </div>

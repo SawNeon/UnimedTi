@@ -1,6 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.service;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDTO;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
@@ -12,6 +13,9 @@ import com.unimedvargina.UnimedVarginhaTi.shared.service.SectorService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class InvoiceService {
@@ -57,4 +61,29 @@ public class InvoiceService {
         return savedInvoice;
     }
 
+    public InvoiceResponseDTO findByIdWithApportionments(UUID id) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
+
+        List<InvoiceResponseDTO.ApportionmentItemResponseDTO> items =
+                apportionmentRepository.findByInvoiceId(id)
+                        .stream()
+                        .map(apportionment -> new InvoiceResponseDTO.ApportionmentItemResponseDTO(
+                                apportionment.getSector().getId(),
+                                apportionment.getSector().getName(),
+                                apportionment.getAllocation()
+                        ))
+                        .toList();
+
+        return new InvoiceResponseDTO(
+                invoice.getId(),
+                invoice.getContract().getId(),
+                invoice.getNumber(),
+                invoice.getAmount(),
+                invoice.getIssueDate(),
+                invoice.getDueDate(),
+                invoice.getStatus(),
+                items
+        );
+    }
 }
