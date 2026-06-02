@@ -10,4 +10,8 @@ export const SectorService = {
         const response = await api.get('/sectors');
         return response.data;
     },
+    getByContract: async (contractId: string) => {
+        const response = await api.get(`/sectors/contract/${contractId}`);
+        return response.data;
+    },
 }

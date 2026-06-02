@@ -129,3 +129,176 @@
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+.hint {
+  font-size: 0.8rem;
+  color: #777;
+  margin: -5px 0 10px 0;
+}
+
+.sectorsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.sectorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #eef0f2;
+}
+
+.lockButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.lockButton:hover {
+  background-color: #e2e8f0;
+  color: #333;
+}
+
+.locked {
+  color: #e53e3e;
+  background-color: #fff5f5;
+}
+
+.sectorName {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 130px;
+}
+
+.currencyPrefix {
+  position: absolute;
+  left: 10px;
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.percentSuffix {
+  position: absolute;
+  right: 10px;
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.sectorInput {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0 10px 0 28px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.sectorInput:focus {
+  border-color: #3a7d71;
+  outline: none;
+}
+
+.totalIndicator {
+  background-color: #edf2f7;
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-top: 5px;
+}
+.select {
+  flex: 1;
+  height: 40px;
+  background-color: #f7f9fa;
+  border-radius: .4rem;
+  padding: 0 10px;
+  border: 1px solid #dcdcdc;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.select:focus {
+  border-color: #3a7d71;
+}
+
+.selectionBox {
+  background-color: #f0f4f3;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e0eae7;
+  margin-bottom: 5px;
+}
+
+.addButton {
+  height: 40px;
+  padding: 0 15px;
+  background-color: #3a7d71;
+  color: white;
+  border: none;
+  border-radius: .4rem;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.addButton:hover {
+  background-color: #2f665c;
+}
+
+.addButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.deleteButton:hover {
+  color: #e53e3e;
+  background-color: #fff5f5;
+}
+
+.emptyText {
+  text-align: center;
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 15px 0;
+  font-style: italic;
+}

@@ -1,149 +1,317 @@
 import { useEffect, useState } from "react";
 import styles from "./InvoiceModal.module.css";
-import type { ApportionmentItem } from "../types/Invoice";
-import type { InvoiceModalProps } from "../types/Invoice";
+import { Lock, LockOpen, Plus, Trash } from "@phosphor-icons/react";
+import { SectorService } from "../../../shared/services/sectorService";
+import type { ContractMonthResponse } from "../types/Contract";
+import { api } from "../../../shared/services/api";
 
+
+interface SectorFromDB {
+    id: string;
+    name: string;
+}
+
+interface ApportionmentItem {
+    sectorId: string;
+    sectorName: string;
+    allocation: number;
+    percentage: number;
+    isManual: boolean;
+}
+
+interface InvoiceModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    contract: ContractMonthResponse | null;
+    mode: 'create' | 'view';
+    onSuccess?: () => void;
+}
 
 export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
     const [number, setNumber] = useState<number | "">("");
-    const [totalAmount, setTotalAmount] = useState<number | "">("");
+    const [totalAmount, setTotalAmount] = useState<number>(0);
     const [issueDate, setIssueDate] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
-    
-    const [items, setItems] = useState<ApportionmentItem[]>([
-        { sectorId: "sec-1", sectorName: "TI", allocation: 0 },
-        { sectorId: "sec-2", sectorName: "Financeiro", allocation: 0 }
-    ]);
+
+    const [allSectors, setAllSectors] = useState<SectorFromDB[]>([]);
+    const [selectedSectorId, setSelectedSectorId] = useState<string>("");
+    const [items, setItems] = useState<ApportionmentItem[]>([]);
 
     useEffect(() => {
-        if (isOpen && contract) {
-            if (mode === 'view' && contract.currentInvoice) {
-                setNumber(contract.currentInvoice.number);
-                setTotalAmount(contract.currentInvoice.value);
-            } else {
-                setNumber("");
-                setTotalAmount("");
-                setIssueDate("");
-                setDueDate("");
-            }
+        if (isOpen && contract && mode === 'create') {
+            setNumber("");
+            setTotalAmount(0);
+            setIssueDate("");
+            setDueDate("");
+            setItems([]);
+            setSelectedSectorId("");
+
+            SectorService.getByContract(contract.id)
+                .then((data: SectorFromDB[]) => {
+                    setAllSectors(data);
+                })
+                .catch(err => console.error("Erro ao buscar setores", err));
         }
     }, [isOpen, contract, mode]);
 
-    if (!isOpen || !contract) return null;
+    const balanceSectors = (total: number, currentItems: ApportionmentItem[]) => {
+        if (total <= 0 || currentItems.length === 0) return;
 
-    const handleAllocationChange = (index: number, val: number) => {
+        const manualItems = currentItems.filter(i => i.isManual);
+        const autoItems = currentItems.filter(i => !i.isManual);
+
+        const totalManualMoney = manualItems.reduce((sum, i) => sum + i.allocation, 0);
+        const remainingMoney = total - totalManualMoney;
+
+        if (autoItems.length > 0) {
+            const distributedValue = remainingMoney > 0 ? remainingMoney / autoItems.length : 0;
+            const distributedPercent = (distributedValue / total) * 100;
+
+            currentItems.forEach(item => {
+                if (!item.isManual) {
+                    item.allocation = Number(distributedValue.toFixed(2));
+                    item.percentage = Number(distributedPercent.toFixed(2));
+                }
+            });
+        }
+        setItems([...currentItems]);
+    };
+
+    const handleAddSector = () => {
+        if (!selectedSectorId) return;
+
+        const sectorData = allSectors.find(s => s.id === selectedSectorId);
+        if (!sectorData) return;
+
+        const alreadyExists = items.some(i => i.sectorId === selectedSectorId);
+        if (alreadyExists) {
+            alert("Este setor já foi adicionado ao rateio!");
+            return;
+        }
+
+        const newItem: ApportionmentItem = {
+            sectorId: sectorData.id,
+            sectorName: sectorData.name,
+            allocation: 0,
+            percentage: 0,
+            isManual: false
+        };
+
+        const updatedItems = [...items, newItem];
+        setSelectedSectorId("");
+
+        balanceSectors(totalAmount, updatedItems);
+    };
+
+
+    const handleRemoveSector = (sectorId: string) => {
+        const updatedItems = items.filter(item => item.sectorId !== sectorId);
+
+        balanceSectors(totalAmount, updatedItems);
+    };
+
+    const handleTotalAmountChange = (val: number) => {
+        setTotalAmount(val);
+        const updated = items.map(item => {
+            if (item.isManual) {
+                item.percentage = Number(((item.allocation / val) * 100).toFixed(2));
+            }
+            return item;
+        });
+        balanceSectors(val, updated);
+    };
+
+    const handleSectorValueChange = (index: number, value: number) => {
         const updated = [...items];
-        updated[index].allocation = val;
-        setItems(updated);
+        updated[index].allocation = value;
+        updated[index].percentage = totalAmount > 0 ? Number(((value / totalAmount) * 100).toFixed(2)) : 0;
+        updated[index].isManual = true;
+        balanceSectors(totalAmount, updated);
+    };
+
+    const handleSectorPercentChange = (index: number, percent: number) => {
+        const updated = [...items];
+        updated[index].percentage = percent;
+        updated[index].allocation = totalAmount > 0 ? Number(((percent / 100) * totalAmount).toFixed(2)) : 0;
+        updated[index].isManual = true;
+        balanceSectors(totalAmount, updated);
+    };
+
+    const toggleLock = (index: number) => {
+        const updated = [...items];
+        updated[index].isManual = !updated[index].isManual;
+        balanceSectors(totalAmount, updated);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (mode === 'view') return;
 
+        if (!contract?.id) {
+            alert("Contrato não encontrado para lançar a nota.");
+            return;
+        }
+
+        if (items.length === 0) {
+            alert("Por favor, adicione pelo menos um setor para o rateio.");
+            return;
+        }
+
+        const sumAllocations = items.reduce((sum, i) => sum + i.allocation, 0);
+        if (Math.abs(sumAllocations - totalAmount) > 1) {
+            alert("Erro: A soma dos rateios por setor precisa ser igual ao valor total da nota!");
+            return;
+        }
+
         const payload = {
             contractId: contract.id,
-            number,
-            totalAmount,
+            number: Number(number),
+            totalAmount: Number(totalAmount),
             issueDate,
             dueDate,
-            items: items.map(i => ({ sectorId: i.sectorId, allocation: i.allocation }))
+            items: items.map(i => ({
+                sectorId: i.sectorId,
+                allocation: Number(i.allocation)
+            }))
         };
 
         try {
-            console.log("Enviando para o Back-end:", payload);
+            console.log("Enviando payload:", payload);
+            await api.post('/invoices', payload);
+
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
             console.error("Erro ao salvar nota:", error);
         }
     };
-
+    if (!isOpen || !contract) return null;
     const isView = mode === 'view';
 
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
-            {/* Evita fechar o modal ao clicar dentro do card */}
             <div className={styles.card} onClick={(e) => e.stopPropagation()}>
                 <h2 className={styles.title}>
                     {isView ? "Visualizar Nota Fiscal" : "Lançar Nota Fiscal"}
                 </h2>
-                <p className={styles.subtitle}>Contrato: {contract.enterpriseName}</p>
+                <p className={styles.subtitle}>Empresa: <strong>{contract.enterpriseName}</strong></p>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
+
                     <div className={styles.row}>
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Número da Nota</label>
-                            <div className={styles.inputGroup}>
-                                <input
-                                    type="number"
-                                    required
-                                    disabled={isView}
-                                    className={styles.input}
-                                    value={number}
-                                    onChange={(e) => setNumber(Number(e.target.value))}
-                                />
-                            </div>
+                            <input type="number" required disabled={isView} className={styles.input} value={number} onChange={(e) => setNumber(Number(e.target.value))} />
                         </div>
-
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Valor Total (R$)</label>
-                            <div className={styles.inputGroup}>
-                                <input
-                                    type="number"
-                                    required
-                                    disabled={isView}
-                                    className={styles.input}
-                                    value={totalAmount}
-                                    onChange={(e) => setTotalAmount(Number(e.target.value))}
-                                />
-                            </div>
+                            <input type="number" required disabled={isView} className={styles.input} value={totalAmount || ""} onChange={(e) => handleTotalAmountChange(Number(e.target.value))} />
                         </div>
                     </div>
 
                     <div className={styles.row}>
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Data de Emissão</label>
-                            <input
-                                type="date"
-                                required
-                                disabled={isView}
-                                className={styles.input}
-                                value={issueDate}
-                                onChange={(e) => setIssueDate(e.target.value)}
-                            />
+                            <input type="date" required disabled={isView} className={styles.input} value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
                         </div>
-
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Data de Vencimento</label>
-                            <input
-                                type="date"
-                                required
-                                disabled={isView}
-                                className={styles.input}
-                                value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
-                            />
+                            <input type="date" required disabled={isView} className={styles.input} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                         </div>
                     </div>
 
                     <hr className={styles.divider} />
-                    <h3 className={styles.sectionTitle}>Rateio por Centro de Custo / Setor</h3>
-                    
-                    {items.map((item, index) => (
-                        <div key={item.sectorId} className={styles.row} style={{ alignItems: 'center', marginBottom: '8px' }}>
-                            <span className={styles.sectorLabel}>{item.sectorName}</span>
-                            <input
-                                type="number"
-                                placeholder="Valor alocado (R$)"
-                                disabled={isView}
-                                className={styles.input}
-                                style={{ maxWidth: '200px' }}
-                                value={item.allocation || ""}
-                                onChange={(e) => handleAllocationChange(index, Number(e.target.value))}
-                            />
+
+                    {!isView && (
+                        <div className={styles.selectionBox}>
+                            <label className={styles.label}>Selecione os Setores Participantes</label>
+                            <div className={styles.row} style={{ gap: '10px' }}>
+                                <select
+                                    className={styles.select}
+                                    value={selectedSectorId}
+                                    onChange={(e) => setSelectedSectorId(e.target.value)}
+                                >
+                                    <option value="">-- Escolha um Setor para adicionar --</option>
+                                    {allSectors.map(sec => (
+                                        <option key={sec.id} value={sec.id}>{sec.name}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    className={styles.addButton}
+                                    onClick={handleAddSector}
+                                    disabled={!selectedSectorId}
+                                >
+                                    <Plus size={18} weight="bold" /> 
+                                </button>
+                            </div>
                         </div>
-                    ))}
+                    )}
+
+                    <h3 className={styles.sectionTitle}>Distribuição do Rateio</h3>
+
+                    {items.length === 0 ? (
+                        <p className={styles.emptyText}>Nenhum setor adicionado a esta nota ainda.</p>
+                    ) : (
+                        <div className={styles.sectorsContainer}>
+                            {items.map((item, index) => (
+                                <div key={item.sectorId} className={styles.sectorRow}>
+
+
+                                    <button
+                                        type="button"
+                                        disabled={isView}
+                                        className={`${styles.lockButton} ${item.isManual ? styles.locked : ''}`}
+                                        onClick={() => toggleLock(index)}
+                                        title={item.isManual ? "Manual (Travado)" : "Automático"}
+                                    >
+                                        {item.isManual ? <Lock size={18} weight="fill" /> : <LockOpen size={18} />}
+                                    </button>
+
+                                    <span className={styles.sectorName}>{item.sectorName}</span>
+
+                                    <div className={styles.inputWrapper}>
+                                        <span className={styles.currencyPrefix}>R$</span>
+                                        <input
+                                            type="number"
+                                            disabled={isView}
+                                            className={styles.sectorInput}
+                                            value={item.allocation || ""}
+                                            onChange={(e) => handleSectorValueChange(index, Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    <div className={styles.inputWrapper} style={{ maxWidth: '85px' }}>
+                                        <input
+                                            type="number"
+                                            disabled={isView}
+                                            className={styles.sectorInput}
+                                            style={{ paddingRight: '20px', textAlign: 'right', paddingLeft: '10px' }}
+                                            value={item.percentage || ""}
+                                            onChange={(e) => handleSectorPercentChange(index, Number(e.target.value))}
+                                        />
+                                        <span className={styles.percentSuffix}>%</span>
+                                    </div>
+
+                                    {!isView && (
+                                        <button
+                                            type="button"
+                                            className={styles.deleteButton}
+                                            onClick={() => handleRemoveSector(item.sectorId)}
+                                        >
+                                            <Trash size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {items.length > 0 && (
+                        <div className={styles.totalIndicator}>
+                            Soma do Rateio: <strong>R$ {items.reduce((sum, i) => sum + i.allocation, 0).toFixed(2)}</strong> de R$ {totalAmount.toFixed(2)}
+                        </div>
+                    )}
 
                     <div className={styles.buttonGroup}>
                         <button type="button" onClick={onClose} className={styles.cancelButton}>
@@ -151,7 +319,7 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
                         </button>
                         {!isView && (
                             <button type="submit" className={styles.submitButton}>
-                                Salvar Lançamento
+                                Salvar Nota Fiscal
                             </button>
                         )}
                     </div>
