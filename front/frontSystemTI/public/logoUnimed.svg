@@ -1,20 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="250" height="250" viewBox="0 0 250 250" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Sistema TI</title>
-  <desc id="desc">Marca visual do sistema de gestão do setor de TI</desc>
-  <defs>
-    <linearGradient id="brandGradient" x1="52" x2="198" y1="38" y2="212" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2fb36f"/>
-      <stop offset="1" stop-color="#0b4a3c"/>
-    </linearGradient>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0b4a3c" flood-opacity="0.22"/>
-    </filter>
-  </defs>
-  <rect width="250" height="250" rx="56" fill="#eef8f3"/>
-  <g filter="url(#softShadow)">
-    <rect x="42" y="36" width="166" height="178" rx="42" fill="url(#brandGradient)"/>
-    <path fill="#ffffff" d="M114 70h22v44h44v22h-44v44h-22v-44H70v-22h44V70Z"/>
-    <path fill="#cdebdc" d="M79 198c13 10 29 16 47 16 25 0 48-11 63-29-15 9-35 15-58 15-20 0-38-4-52-12v10Z" opacity=".9"/>
-  </g>
-  <text x="125" y="236" fill="#0b4a3c" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="800" text-anchor="middle">TI</text>
+  <desc id="desc">Logo verde com simbolo branco inspirado na marca enviada</desc>
+  <rect width="512" height="512" rx="24" fill="#00995d"/>
+  <path
+    fill="#ffffff"
+    d="M207.8 150.7c4.9-7.3 13-11.7 21.8-11.7h52.8c8.8 0 16.9 4.4 21.8 11.7l104.5 155.1c11.8 17.5-.7 41.2-21.8 41.2h-57.6c-7.5 0-12.1 8.2-8.2 14.6l44.4 72.5c10.7 17.5-1.9 39.9-22.4 39.9h-63.8c-9.2 0-17.8-4.8-22.5-12.7L220 399.8c-4-6.6.8-15 8.5-15h29.2c7.7 0 12.5-8.4 8.5-15l-12.8-21.5c-4.7-7.9-13.3-12.7-22.5-12.7H125.1c-21.1 0-33.6-23.7-21.8-41.2l104.5-143.7Z"
+  />
+  <path
+    fill="#00995d"
+    d="M240.6 167.1c7.3-10.8 23.5-10.8 30.8 0l50.4 74.8c8.3 12.3-.5 28.9-15.4 28.9h-28.1c-7.7 0-12.5 8.4-8.5 15l43.3 72.1c4 6.6-.8 15-8.5 15h-97.2c-7.7 0-12.5-8.4-8.5-15l43.3-72.1c4-6.6-.8-15-8.5-15h-28.1c-14.9 0-23.7-16.6-15.4-28.9l50.4-74.8Z"
+  />
 </svg>
