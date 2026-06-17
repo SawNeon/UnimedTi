@@ -11,7 +11,7 @@
 
 .card {
   width: 100%;
-  max-width: 430px;
+  max-width: 460px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -23,17 +23,24 @@
 }
 
 .logoContainer {
+  width: 100%;
+  max-width: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #08362c, #0b4a3c);
+  box-shadow: 0 14px 32px rgba(11, 74, 60, 0.18);
 }
 
 .logo {
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  box-shadow: 0 12px 28px rgba(11, 74, 60, 0.18);
+  width: 100%;
+  height: auto;
+  max-height: 110px;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .systemName {

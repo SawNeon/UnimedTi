@@ -86,19 +86,23 @@ select:focus-visible {
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 112px;
+  padding: 10px 8px;
 }
 
 .brand-logo {
-  width: 54px;
-  height: 54px;
+  width: 100%;
+  max-width: 214px;
+  height: auto;
+  max-height: 82px;
   flex: 0 0 auto;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
 }
 
 .brand-text {
@@ -376,7 +380,7 @@ select:focus-visible {
   }
 
   .brand-logo {
-    width: 48px;
-    height: 48px;
+    max-width: 180px;
+    max-height: 70px;
   }
 }
