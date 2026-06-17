@@ -46,5 +46,7 @@ application-local.yml
 
 # Runtime uploads and generated files
 uploads/
+data/
+**/data/
 **/orders/requests/
 **/orders/invoices/
