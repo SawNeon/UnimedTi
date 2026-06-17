@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProductService } from "../services/ProductService";
 import type { ProductDTO } from "../types/Product";
 import styles from "./ProductList.module.css";
@@ -17,11 +17,7 @@ export function ProductList({ onEdit }: ProductListProps) {
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
 
-    useEffect(() => {
-        loadProducts(currentPage);
-    }, [currentPage]);
-
-    const loadProducts = async (page: number) => {
+    const loadProducts = useCallback(async (page: number) => {
         try {
             const response = await ProductService.getAll(page - 1, itemsPerPage);
             const data = response.content;
@@ -34,7 +30,11 @@ export function ProductList({ onEdit }: ProductListProps) {
         } finally {
             setLoading(false);
         }
-    }
+    }, [itemsPerPage]);
+
+    useEffect(() => {
+        loadProducts(currentPage);
+    }, [currentPage, loadProducts]);
 
     const handleDelete = async (id: string) => {
         if (window.confirm("Tem certeza que deseja deletar este produto?")) {

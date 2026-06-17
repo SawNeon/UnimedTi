@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AssetService } from "../services/AssetService";
 import type { AssetDTO } from "../types/Asset";
 import styles from "./AssetList.module.css";
@@ -16,11 +16,7 @@ export function AssetList({ onEdit }: AssetListProps) {
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
 
-    useEffect(() => {
-        loadAssets(currentPage);
-    }, [currentPage]);
-
-    const loadAssets = async (page: number) => {
+    const loadAssets = useCallback(async (page: number) => {
         try {
             const response= await AssetService.getAll(page - 1, itemsPerPage);
             const data = response.content;
@@ -32,7 +28,11 @@ export function AssetList({ onEdit }: AssetListProps) {
         } finally {
             setLoading(false);
         }
-    }
+    }, [itemsPerPage]);
+
+    useEffect(() => {
+        loadAssets(currentPage);
+    }, [currentPage, loadAssets]);
 
     const handleReturn = async (id: string) => {
         try {
