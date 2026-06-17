@@ -26,7 +26,8 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await ProductService.getAll();
+        const response = await ProductService.getAll(0, 100);
+        const data = response.content ?? [];
         const dataSectors = await SectorService.getAll();
         setSectors(dataSectors);
         setProducts(data);

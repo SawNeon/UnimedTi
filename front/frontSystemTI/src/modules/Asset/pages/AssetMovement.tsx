@@ -26,7 +26,8 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
   useEffect(() => {
     const fetchAssets = async () => {
       try {
-        const data = await AssetService.getAll();
+        const response = await AssetService.getAll(0, 100);
+        const data = response.content ?? [];
         setAssets(data);
         const dataSectors = await SectorService.getAll();
         setSectors(dataSectors);
