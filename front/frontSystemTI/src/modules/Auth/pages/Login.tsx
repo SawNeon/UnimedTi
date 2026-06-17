@@ -28,7 +28,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
             await axios.post('http://localhost:8080/api/auth/password-reset/request', { email });
             alert('Código enviado para o seu e-mail!');
             setView('reset');
-        } catch (err) {
+        } catch {
             setError('E-mail não encontrado.');
         } finally {
             setLoading(false);
@@ -46,7 +46,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
             });
             alert('Senha alterada com sucesso!');
             setView('login');
-        } catch (err) {
+        } catch {
             setError('Código inválido ou expirado.');
         } finally {
             setLoading(false);
