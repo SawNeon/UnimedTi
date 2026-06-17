@@ -43,6 +43,21 @@ interface InvoiceViewResponse {
 }
 
 export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
+    const modalKey = `${mode}-${contract?.currentInvoice?.id ?? contract?.id ?? 'empty'}-${isOpen ? 'open' : 'closed'}`;
+
+    return (
+        <InvoiceModalContent
+            key={modalKey}
+            isOpen={isOpen}
+            onClose={onClose}
+            contract={contract}
+            mode={mode}
+            onSuccess={onSuccess}
+        />
+    );
+}
+
+function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
     const [number, setNumber] = useState<number | "">("");
     const [totalAmount, setTotalAmount] = useState<number>(0);
     const [issueDate, setIssueDate] = useState<string>("");
@@ -57,14 +72,6 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
         if (!isOpen || !contract) return;
 
         if (mode === 'create') {
-            setNumber("");
-            setTotalAmount(0);
-            setIssueDate("");
-            setDueDate("");
-            setItems([]);
-            setSelectedSectorId("");
-
-
             SectorService.getByContract(contract.id)
                 .then((data: SectorFromDB[]) => {
                     setAllSectors(data);
