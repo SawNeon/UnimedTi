@@ -16,6 +16,7 @@ import { OrderForm } from './modules/Order/pages/OrderForm';
 
 import { ContractList } from './modules/Financial/pages/ContractList';
 import { CostCenterView } from './modules/Financial/pages/CostCenterView';
+import { ContractForm } from './modules/Financial/pages/ContractForm';
 
 import {
   Package,
@@ -185,6 +186,10 @@ function App() {
     }
 
     if (activeModule === 'financial') {
+      if (activeScreen === 'form') {
+        return <ContractForm onSuccess={handleBackToList} />;
+      }
+
       if (activeScreen === 'costCenters' && selectedInvoiceId) {
         return (
           <CostCenterView invoiceId={selectedInvoiceId} onBack={handleBackToList} />
@@ -343,6 +348,24 @@ function App() {
                       : 'Movimentações'}
                 </button>
               )}
+            </nav>
+          )}
+
+          {activeModule === 'financial' && (
+            <nav style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleBackToList}
+                style={getHeaderButtonStyle(activeScreen === 'list')}
+              >
+                Ver Lista
+              </button>
+
+              <button
+                onClick={handleNewItem}
+                style={getHeaderButtonStyle(activeScreen === 'form')}
+              >
+                + Novo Contrato
+              </button>
             </nav>
           )}
         </header>
