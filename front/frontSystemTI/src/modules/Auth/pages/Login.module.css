@@ -24,23 +24,23 @@
 
 .logoContainer {
   width: 100%;
-  max-width: 320px;
+  max-width: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  padding: 12px 14px;
+  overflow: hidden;
+  border-radius: 10px;
+  padding: 0;
   margin-bottom: 14px;
-  background: linear-gradient(135deg, #08362c, #0b4a3c);
+  background: #ffffff;
   box-shadow: 0 14px 32px rgba(11, 74, 60, 0.18);
 }
 
 .logo {
   width: 100%;
-  height: auto;
-  max-height: 110px;
-  object-fit: contain;
-  border-radius: 10px;
+  height: 92px;
+  object-fit: cover;
+  object-position: center center;
 }
 
 .systemName {

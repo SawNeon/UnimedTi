@@ -138,7 +138,7 @@ function App() {
       return (
         <section className="welcome-panel">
           <div className="welcome-copy">
-            <span className="welcome-kicker">Sistema TI</span>
+            <span className="welcome-kicker">UniSys</span>
             <h1>Gestão do setor de TI em um só lugar</h1>
             <p>
               Acompanhe estoque, ativos, pedidos e contratos com uma navegação
@@ -305,7 +305,7 @@ function App() {
         <div className="brand">
           <img src="/logoUnimed.svg" alt="Sistema TI" className="brand-logo" />
           <div className="brand-text">
-            <strong>Sistema TI</strong>
+            <strong>UniSys</strong>
             <span>Gestão operacional</span>
           </div>
         </div>

@@ -89,18 +89,17 @@ select:focus-visible {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  min-height: 112px;
+  min-height: 96px;
   padding: 10px 8px;
 }
 
 .brand-logo {
   width: 100%;
   max-width: 214px;
-  height: auto;
-  max-height: 82px;
+  height: 68px;
   flex: 0 0 auto;
-  object-fit: contain;
-  object-position: left center;
+  object-fit: cover;
+  object-position: center center;
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
 }
@@ -381,6 +380,6 @@ select:focus-visible {
 
   .brand-logo {
     max-width: 180px;
-    max-height: 70px;
+    height: 58px;
   }
 }

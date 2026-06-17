@@ -77,7 +77,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
                     <img src="/logoUnimed.svg" alt="Sistema TI" className={styles.logo} />
                 </div>
 
-                <h2 className={styles.systemName}>Sistema TI</h2>
+                <h2 className={styles.systemName}>UniSys</h2>
                 <h1 className={styles.welcomeTitle}>
                     {view === 'login' && 'Olá, bem-vindo(a)!'}
                     {view === 'forgot' && 'Recuperar senha'}

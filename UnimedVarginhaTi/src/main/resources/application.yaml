@@ -15,8 +15,8 @@ spring:
 
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/SystemTI?createDatabaseIfNotExist=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    username: root
+    password: Unimed@2026!
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -28,8 +28,8 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
 
   mail:
-    host: ${MAIL_HOST:smtp-mail.outlook.com}
-    port: ${MAIL_PORT:587}
+    host: smtp-mail.outlook.com
+    port: 587
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
