@@ -70,9 +70,13 @@ public class FileStorageService {
             }
 
             Path filePath = this.fileStorageLocation.resolve(relativePath).normalize();
+            if (!filePath.startsWith(this.fileStorageLocation)) {
+                throw new RuntimeException("Invalid file path: " + relativePath);
+            }
+
             Resource resource = new UrlResource(filePath.toUri());
 
-            if(resource.exists()){
+            if(resource.exists() && resource.isReadable()){
                 return resource;
             } else {
                 throw new RuntimeException("Resource not found: " + relativePath);
