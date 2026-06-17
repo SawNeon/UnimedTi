@@ -30,25 +30,20 @@ import {
 import { AuthService } from './shared/services/authService';
 import { Login } from './modules/Auth/pages/Login';
 
+type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial';
+type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters';
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     AuthService.isAuthenticated()
   );
 
-  const [activeModule, setActiveModule] = useState<
-    'welcome' | 'stock' | 'asset' | 'order' | 'financial'
-  >('welcome');
-
-  const [activeScreen, setActiveScreen] = useState<
-    'list' | 'form' | 'movement' | 'costCenters'
-  >('list');
-
+  const [activeModule, setActiveModule] = useState<ActiveModule>('welcome');
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('list');
   const [editingItem, setEditingItem] = useState<ProductDTO | AssetDTO | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
 
-  const handleSelectModule = (
-    module: 'welcome' | 'stock' | 'asset' | 'order' | 'financial'
-  ) => {
+  const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
     setActiveScreen('list');
     setEditingItem(null);
@@ -86,60 +81,69 @@ function App() {
     setActiveScreen('costCenters');
   };
 
-  const getSidebarButtonStyle = (isActive: boolean) => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 15px',
-    backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-    fontSize: '15px',
-    fontWeight: isActive ? 'bold' : 'normal',
-    transition: '0.2s'
-  });
+  const getPageTitle = () => {
+    if (activeModule === 'welcome') return 'Página inicial';
+    if (activeModule === 'stock') return 'Gestão de estoque';
+    if (activeModule === 'asset') return 'Gestão de ativos';
+    if (activeModule === 'order') return 'Pedidos de compras';
+    if (activeModule === 'financial' && activeScreen === 'costCenters') {
+      return 'Centros de custo';
+    }
 
-  const getHeaderButtonStyle = (isActive: boolean) => ({
-    backgroundColor: isActive ? '#3a7d71' : '#f0f0f0',
-    color: isActive ? 'white' : '#333',
-    padding: '8px 15px',
-    cursor: 'pointer',
-    border: 'none',
-    borderRadius: '4px',
-    fontWeight: 'bold',
-    transition: '0.2s'
-  });
+    return 'Gestão financeira';
+  };
+
+  const getPageDescription = () => {
+    if (activeModule === 'welcome') return 'Escolha um módulo para começar sua rotina.';
+    if (activeModule === 'stock') return 'Produtos, saldos mínimos e movimentações de estoque.';
+    if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
+    if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
+    if (activeModule === 'financial' && activeScreen === 'costCenters') {
+      return 'Distribuição da nota por áreas e centros de custo.';
+    }
+
+    return 'Contratos, lançamentos mensais e notas vinculadas.';
+  };
 
   const renderMainContent = () => {
     if (activeModule === 'welcome') {
       return (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '60vh',
-            textAlign: 'center'
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              color: '#3a7d71',
-              marginBottom: '10px'
-            }}
-          >
-            Olá, Bem-vindo(a)!
-          </h1>
+        <section className="welcome-panel">
+          <div className="welcome-copy">
+            <span className="welcome-kicker">Sistema TI</span>
+            <h1>Gestão do setor de TI em um só lugar</h1>
+            <p>
+              Acompanhe estoque, ativos, pedidos e contratos com uma navegação
+              mais clara para a rotina da equipe.
+            </p>
+          </div>
 
-          <p style={{ fontSize: '1.2rem', color: '#666' }}>
-            Selecione um módulo no menu lateral para começar.
-          </p>
-        </div>
+          <div className="quick-grid" aria-label="Acesso rápido aos módulos">
+            <button className="quick-card" onClick={() => handleSelectModule('stock')}>
+              <Package size={28} weight="duotone" />
+              <strong>Estoque</strong>
+              <span>Produtos e movimentações</span>
+            </button>
+
+            <button className="quick-card" onClick={() => handleSelectModule('asset')}>
+              <Desktop size={28} weight="duotone" />
+              <strong>Ativos</strong>
+              <span>Patrimônio e empréstimos</span>
+            </button>
+
+            <button className="quick-card" onClick={() => handleSelectModule('order')}>
+              <ShoppingCart size={28} weight="duotone" />
+              <strong>Pedidos</strong>
+              <span>Solicitações de compra</span>
+            </button>
+
+            <button className="quick-card" onClick={() => handleSelectModule('financial')}>
+              <InvoiceIcon size={28} weight="duotone" />
+              <strong>Financeiro</strong>
+              <span>Contratos e notas</span>
+            </button>
+          </div>
+        </section>
       );
     }
 
@@ -202,172 +206,133 @@ function App() {
     return null;
   };
 
+  const renderModuleActions = () => {
+    if (activeModule === 'welcome') {
+      return null;
+    }
+
+    if (activeModule === 'financial') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo financeiro">
+          <button
+            className={`header-action ${activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={handleBackToList}
+          >
+            Ver lista
+          </button>
+
+          <button
+            className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+            onClick={handleNewItem}
+          >
+            + Novo contrato
+          </button>
+        </nav>
+      );
+    }
+
+    return (
+      <nav className="header-actions" aria-label="Ações do módulo">
+        <button
+          className={`header-action ${activeScreen === 'list' ? 'is-active' : ''}`}
+          onClick={handleBackToList}
+        >
+          Ver lista
+        </button>
+
+        <button
+          className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+          onClick={handleNewItem}
+        >
+          {activeModule === 'stock'
+            ? '+ Novo produto'
+            : activeModule === 'asset'
+              ? '+ Novo ativo'
+              : '+ Novo pedido'}
+        </button>
+
+        {activeModule !== 'order' && (
+          <button
+            className={`header-action ${activeScreen === 'movement' ? 'is-active' : ''}`}
+            onClick={handleMovement}
+          >
+            {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
+          </button>
+        )}
+      </nav>
+    );
+  };
+
+  const getSidebarClassName = (module: ActiveModule) => (
+    `sidebar-button ${activeModule === module ? 'is-active' : ''}`
+  );
+
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
 
   return (
     <div className="app-layout">
-      <aside
-        style={{
-          backgroundColor: '#1b4b43',
-          padding: '20px',
-          color: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '15px'
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            marginBottom: '30px'
-          }}
-        >
-          <div>
-            <img
-              src="/logoUnimed.svg"
-              alt="Logo"
-              style={{
-                width: '50px',
-                height: '50px',
-                objectFit: 'contain'
-              }}
-            />
+      <aside className="sidebar">
+        <div className="brand">
+          <img src="/logoUnimed.svg" alt="Sistema TI" className="brand-logo" />
+          <div className="brand-text">
+            <strong>Sistema TI</strong>
+            <span>Gestão operacional</span>
           </div>
-
-          <h2 style={{ fontSize: '18px', margin: 0 }}>
-            Sistema TI
-          </h2>
         </div>
 
-        <button
-          onClick={() => handleSelectModule('welcome')}
-          style={getSidebarButtonStyle(activeModule === 'welcome')}
-        >
-          <House size={20} /> Início
-        </button>
-
-        <button
-          onClick={() => handleSelectModule('stock')}
-          style={getSidebarButtonStyle(activeModule === 'stock')}
-        >
-          <Package size={20} /> Estoque
-        </button>
-
-        <button
-          onClick={() => handleSelectModule('asset')}
-          style={getSidebarButtonStyle(activeModule === 'asset')}
-        >
-          <Desktop size={20} /> Ativos
-        </button>
-
-        <button
-          onClick={() => handleSelectModule('order')}
-          style={getSidebarButtonStyle(activeModule === 'order')}
-        >
-          <ShoppingCart size={20} /> Pedidos
-        </button>
-
-        <button
-          onClick={() => handleSelectModule('financial')}
-          style={getSidebarButtonStyle(activeModule === 'financial')}
-        >
-          <InvoiceIcon size={20} /> Financeiro
-        </button>
-
-        <div style={{ marginTop: 'auto' }}>
+        <nav className="sidebar-nav" aria-label="Módulos do sistema">
           <button
-            onClick={handleLogout}
-            style={getSidebarButtonStyle(false)}
+            onClick={() => handleSelectModule('welcome')}
+            className={getSidebarClassName('welcome')}
           >
-            <SignOut size={20} /> Sair
+            <House size={20} /> Início
           </button>
-        </div>
+
+          <button
+            onClick={() => handleSelectModule('stock')}
+            className={getSidebarClassName('stock')}
+          >
+            <Package size={20} /> Estoque
+          </button>
+
+          <button
+            onClick={() => handleSelectModule('asset')}
+            className={getSidebarClassName('asset')}
+          >
+            <Desktop size={20} /> Ativos
+          </button>
+
+          <button
+            onClick={() => handleSelectModule('order')}
+            className={getSidebarClassName('order')}
+          >
+            <ShoppingCart size={20} /> Pedidos
+          </button>
+
+          <button
+            onClick={() => handleSelectModule('financial')}
+            className={getSidebarClassName('financial')}
+          >
+            <InvoiceIcon size={20} /> Financeiro
+          </button>
+        </nav>
+
+        <button onClick={handleLogout} className="sidebar-button logout-button">
+          <SignOut size={20} /> Sair
+        </button>
       </aside>
 
       <div className="main-area">
-        <header
-          style={{
-            backgroundColor: 'white',
-            padding: '20px 30px',
-            borderBottom: '1px solid #ddd',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              color: '#333',
-              fontSize: '20px'
-            }}
-          >
-            {activeModule === 'welcome' && 'Página Inicial'}
-            {activeModule === 'stock' && 'Gestão de Estoque'}
-            {activeModule === 'asset' && 'Gestão de Ativos'}
-            {activeModule === 'order' && 'Pedidos de Compras'}
-            {activeModule === 'financial' &&
-              (activeScreen === 'costCenters'
-                ? 'Centros de Custo'
-                : 'Gestão Financeira')}
-          </h2>
+        <header className="app-header">
+          <div className="page-heading">
+            <span className="page-eyebrow">Módulo ativo</span>
+            <h2>{getPageTitle()}</h2>
+            <p>{getPageDescription()}</p>
+          </div>
 
-          {activeModule !== 'welcome' && activeModule !== 'financial' && (
-            <nav style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleBackToList}
-                style={getHeaderButtonStyle(activeScreen === 'list')}
-              >
-                Ver Lista
-              </button>
-
-              <button
-                onClick={handleNewItem}
-                style={getHeaderButtonStyle(activeScreen === 'form')}
-              >
-                {activeModule === 'stock'
-                  ? '+ Novo Produto'
-                  : activeModule === 'asset'
-                    ? '+ Novo Ativo'
-                    : '+ Novo Pedido'}
-              </button>
-
-              {activeModule !== 'order' && (
-                <button
-                  onClick={handleMovement}
-                  style={getHeaderButtonStyle(activeScreen === 'movement')}
-                >
-                  {activeModule === 'stock'
-                    ? 'Movimentações'
-                    : activeModule === 'asset'
-                      ? 'Empréstimos'
-                      : 'Movimentações'}
-                </button>
-              )}
-            </nav>
-          )}
-
-          {activeModule === 'financial' && (
-            <nav style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleBackToList}
-                style={getHeaderButtonStyle(activeScreen === 'list')}
-              >
-                Ver Lista
-              </button>
-
-              <button
-                onClick={handleNewItem}
-                style={getHeaderButtonStyle(activeScreen === 'form')}
-              >
-                + Novo Contrato
-              </button>
-            </nav>
-          )}
+          {renderModuleActions()}
         </header>
 
         <main className="content-container">

@@ -1,10 +1,8 @@
-// src/modules/Auth/pages/Login.tsx
-
 import { useState } from 'react';
-import { User, LockKey, Eye, EyeClosed, Intersect } from '@phosphor-icons/react';
+import { User, LockKey, Eye, EyeClosed } from '@phosphor-icons/react';
+import axios from 'axios';
 import { AuthService } from '../../../shared/services/authService';
 import styles from './Login.module.css';
-import axios from 'axios';
 
 interface LoginProps {
     onLoginSuccess: () => void;
@@ -23,7 +21,9 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
     const handleRequestReset = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setLoading(true);
+
         try {
             await axios.post('http://localhost:8080/api/auth/password-reset/request', { email });
             alert('Código enviado para o seu e-mail!');
@@ -37,9 +37,10 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
     const handleConfirmReset = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setLoading(true);
-        try {
 
+        try {
             await axios.post('http://localhost:8080/api/auth/password-reset/confirm', {
                 token,
                 newPassword
@@ -56,15 +57,11 @@ export function Login({ onLoginSuccess }: LoginProps) {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-
+        setLoading(true);
 
         try {
             await AuthService.login({ login, password });
-
-
             onLoginSuccess();
-
         } catch (err) {
             console.error(err);
             setError('Usuário ou senha inválidos.');
@@ -77,14 +74,14 @@ export function Login({ onLoginSuccess }: LoginProps) {
         <div className={styles.container}>
             <div className={styles.card}>
                 <div className={styles.logoContainer}>
-                    <Intersect size={48} color="#d1d1d1" weight="fill" />
+                    <img src="/logoUnimed.svg" alt="Sistema TI" className={styles.logo} />
                 </div>
 
                 <h2 className={styles.systemName}>Sistema TI</h2>
                 <h1 className={styles.welcomeTitle}>
-                    {view === 'login' && 'Olá, Bem-vindo(a)!'}
-                    {view === 'forgot' && 'Recuperar Senha'}
-                    {view === 'reset' && 'Nova Senha'}
+                    {view === 'login' && 'Olá, bem-vindo(a)!'}
+                    {view === 'forgot' && 'Recuperar senha'}
+                    {view === 'reset' && 'Nova senha'}
                 </h1>
                 <p className={styles.subtitle}>
                     {view === 'login' && 'Acesse sua conta para continuar'}
@@ -103,6 +100,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
                                 value={login}
                                 onChange={(e) => setLogin(e.target.value)}
                                 disabled={loading}
+                                required
                             />
                         </div>
 
@@ -115,11 +113,13 @@ export function Login({ onLoginSuccess }: LoginProps) {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={loading}
+                                required
                             />
                             <button
                                 type="button"
                                 className={styles.iconButton}
                                 onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                             >
                                 {showPassword ? <Eye size={20} /> : <EyeClosed size={20} />}
                             </button>
@@ -149,15 +149,16 @@ export function Login({ onLoginSuccess }: LoginProps) {
                                 className={styles.input}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
                                 required
                             />
                         </div>
                         {error && <span className={styles.errorText}>{error}</span>}
                         <button type="submit" className={styles.button} disabled={loading}>
-                            {loading ? 'Enviando...' : 'Enviar Código'}
+                            {loading ? 'Enviando...' : 'Enviar código'}
                         </button>
-                        <button type="button" className={styles.link} onClick={() => setView('login')}>
-                            Voltar para o Login
+                        <button type="button" className={styles.link} onClick={() => setView('login')} disabled={loading}>
+                            Voltar para o login
                         </button>
                     </form>
                 )}
@@ -173,6 +174,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
                                 value={token}
                                 onChange={(e) => setToken(e.target.value)}
                                 maxLength={6}
+                                disabled={loading}
                                 required
                             />
                         </div>
@@ -180,16 +182,17 @@ export function Login({ onLoginSuccess }: LoginProps) {
                             <LockKey size={20} className={styles.inputIcon} />
                             <input
                                 type="password"
-                                placeholder="Nova Senha"
+                                placeholder="Nova senha"
                                 className={styles.input}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
+                                disabled={loading}
                                 required
                             />
                         </div>
                         {error && <span className={styles.errorText}>{error}</span>}
                         <button type="submit" className={styles.button} disabled={loading}>
-                            {loading ? 'Alterando...' : 'Confirmar Nova Senha'}
+                            {loading ? 'Alterando...' : 'Confirmar nova senha'}
                         </button>
                     </form>
                 )}
