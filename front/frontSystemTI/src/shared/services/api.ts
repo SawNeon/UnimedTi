@@ -29,7 +29,7 @@ api.interceptors.response.use(
     const requestUrl = error.config?.url ?? '';
     const isLoginRequest = requestUrl.includes('/auth/login');
 
-    if ((status === 401 || status === 403) && !isLoginRequest) {
+    if (status === 401 && !isLoginRequest) {
       requireLogin();
     }
 
