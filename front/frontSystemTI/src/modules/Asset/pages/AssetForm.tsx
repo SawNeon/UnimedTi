@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AssetService } from '../services/AssetService';
 import type { AssetDTO } from '../types/Asset';
 import styles from './AssetForm.module.css';
@@ -11,23 +11,26 @@ interface AssetFormProps {
 }
 
 export function AssetForm({ assetToEdit, onSuccess }: AssetFormProps) {
+  const formKey = assetToEdit?.id ?? 'new-asset';
 
-  const [formData, setFormData] = useState<AssetDTO>({
+  return (
+    <AssetFormFields
+      key={formKey}
+      assetToEdit={assetToEdit}
+      onSuccess={onSuccess}
+    />
+  );
+}
+
+function AssetFormFields({ assetToEdit, onSuccess }: AssetFormProps) {
+  const [formData, setFormData] = useState<AssetDTO>(() => assetToEdit ?? {
     name: '',
     assetTag: '',
     description: '',
-    status: ''
+    status: 'AVAILABLE'
   });
 
-  useEffect(() => {
-    if (assetToEdit) {
-      setFormData(assetToEdit);
-    } else {
-      setFormData({ name: '', assetTag: '', description: '', status: 'AVAILABLE' });
-    }
-  }, [assetToEdit]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -98,7 +101,7 @@ export function AssetForm({ assetToEdit, onSuccess }: AssetFormProps) {
               className={styles.input}
               name="status"
               value={formData.status}
-              onChange={handleChange as any}
+              onChange={handleChange}
               required
             >
               <option value="AVAILABLE">Disponível</option>

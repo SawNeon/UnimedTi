@@ -1,6 +1,6 @@
 // src/modules/Stock/pages/ProductForm.tsx
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ProductService } from '../services/ProductService';
 import type { ProductDTO } from '../types/Product';
 import styles from './ProductForm.module.css';
@@ -14,23 +14,24 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
+  const formKey = productToEdit?.id ?? 'new-product';
 
-  const [formData, setFormData] = useState<ProductDTO>({
+  return (
+    <ProductFormFields
+      key={formKey}
+      productToEdit={productToEdit}
+      onSuccess={onSuccess}
+    />
+  );
+}
+
+function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
+  const [formData, setFormData] = useState<ProductDTO>(() => productToEdit ?? {
     name: '',
     description: '',
     currentStock: 0,
     minStockLevel: 0
   });
-
-
-  useEffect(() => {
-    if (productToEdit) {
-      setFormData(productToEdit);
-    } else {
-
-      setFormData({ name: '', description: '', currentStock: 0, minStockLevel: 0 });
-    }
-  }, [productToEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
