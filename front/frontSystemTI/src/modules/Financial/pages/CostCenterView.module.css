@@ -1,0 +1,128 @@
+.pageContainer {
+    padding: 32px;
+    background: #f4f7f6;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.systemLabel {
+    font-size: 12px;
+    font-weight: 700;
+    color: #3a7d71;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.title {
+    font-size: 28px;
+    color: #24443f;
+    margin: 0;
+}
+
+.subtitle {
+    color: #6b7280;
+    margin-top: 8px;
+}
+
+.backButton {
+    border: none;
+    background: #f28c28;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.backButton:hover {
+    filter: brightness(0.95);
+}
+
+.summaryCard {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+}
+
+.summaryItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summaryItem span {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.summaryItem strong {
+    font-size: 18px;
+    color: #24443f;
+}
+
+.money {
+    color: #2e7d32 !important;
+}
+
+.tableCard {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.sectionTitle {
+    color: #24443f;
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.table thead {
+    background: #24443f;
+    color: white;
+}
+
+.table th {
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 13px;
+}
+
+.table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #374151;
+}
+
+.table tbody tr:nth-child(even) {
+    background: #f8faf9;
+}
+
+.table tfoot td {
+    font-weight: 700;
+    background: #eef6f3;
+}
+
+.valueCell {
+    color: #2e7d32 !important;
+    font-weight: 700;
+}

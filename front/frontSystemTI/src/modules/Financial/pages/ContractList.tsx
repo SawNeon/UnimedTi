@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ContractService } from "../services/ContractService";
 import styles from "./ContractList.module.css";
 import type { ContractMonthResponse } from "../types/Contract";
-import {InvoiceModal} from "../components/InvoiceModal";
+import { InvoiceModal } from "../components/InvoiceModal";
 
-export function ContractList() {
+interface ContractListProps {
+    onOpenCostCenters: (invoiceId: string) => void;
+}
+
+export function ContractList({ onOpenCostCenters }: ContractListProps) {
     const [contracts, setContracts] = useState<ContractMonthResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -18,11 +22,7 @@ export function ContractList() {
     const [selectedContract, setSelectedContract] = useState<ContractMonthResponse | null>(null);
     const [modalMode, setModalMode] = useState<'create' | 'view'>('create');
 
-    useEffect(() => {
-        loadContractsAndInvoices(currentPage, selectedMonth);
-    }, [currentPage, selectedMonth]);
-
-    const loadContractsAndInvoices = async (page: number, month: string) => {
+    const loadContractsAndInvoices = useCallback(async (page: number, month: string) => {
         setLoading(true);
         try {
             const response = await ContractService.getAll(page - 1, itemsPerPage, month);
@@ -33,7 +33,11 @@ export function ContractList() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [itemsPerPage]);
+
+    useEffect(() => {
+        loadContractsAndInvoices(currentPage, selectedMonth);
+    }, [currentPage, selectedMonth, loadContractsAndInvoices]);
 
     const handleLaunchInvoice = (contract: ContractMonthResponse) => {
         setSelectedContract(contract);
@@ -48,7 +52,7 @@ export function ContractList() {
     };
 
     const handleGoToCostCenters = (invoiceId: string) => {
-        console.log("Navegar para a tela de Centros de Custo da Fatura:", invoiceId);
+        onOpenCostCenters(invoiceId);
     };
 
     const getInvoiceValue = (invoice: ContractMonthResponse["currentInvoice"]) => {
@@ -187,7 +191,7 @@ export function ContractList() {
                 )}
             </div>
 
-            <InvoiceModal 
+            <InvoiceModal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 contract={selectedContract}

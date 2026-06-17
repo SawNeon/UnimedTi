@@ -14,6 +14,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -62,17 +64,33 @@ public class InvoiceService {
     }
 
     public InvoiceResponseDTO findByIdWithApportionments(UUID id) {
+
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
+
+        BigDecimal totalAmount = invoice.getAmount();
 
         List<InvoiceResponseDTO.ApportionmentItemResponseDTO> items =
                 apportionmentRepository.findByInvoiceId(id)
                         .stream()
-                        .map(apportionment -> new InvoiceResponseDTO.ApportionmentItemResponseDTO(
-                                apportionment.getSector().getId(),
-                                apportionment.getSector().getName(),
-                                apportionment.getAllocation()
-                        ))
+                        .map(apportionment -> {
+                            BigDecimal allocation = apportionment.getAllocation();
+
+                            BigDecimal percentage = BigDecimal.ZERO;
+                            if (totalAmount != null && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
+                                percentage = allocation
+                                        .multiply(BigDecimal.valueOf(100))
+                                        .divide(totalAmount, 3, RoundingMode.HALF_UP);
+                            }
+
+                            return new InvoiceResponseDTO.ApportionmentItemResponseDTO(
+                                    apportionment.getSector().getId(),
+                                    apportionment.getSector().getName(),
+                                    apportionment.getSector().getCostCenterCode(),
+                                    allocation,
+                                    percentage
+                            );
+                        })
                         .toList();
 
         return new InvoiceResponseDTO(
@@ -83,6 +101,8 @@ public class InvoiceService {
                 invoice.getIssueDate(),
                 invoice.getDueDate(),
                 invoice.getStatus(),
+                invoice.getContract().getServiceDescription(),
+                invoice.getContract().getServiceType(),
                 items
         );
     }

@@ -1,6 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.dto;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -14,11 +15,15 @@ public record InvoiceResponseDTO(
         LocalDate issueDate,
         LocalDate dueDate,
         InvoiceStatus status,
+        String serviceDescription,
+        String serviceType,
         List<ApportionmentItemResponseDTO> items
 ) {
     public record ApportionmentItemResponseDTO(
             UUID sectorId,
             String sectorName,
-            BigDecimal allocation
+            Integer costCenterCode,
+            BigDecimal allocation,
+            BigDecimal percentage
     ) {}
 }

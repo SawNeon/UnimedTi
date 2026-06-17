@@ -59,3 +59,22 @@ export interface InvoiceModalProps {
     mode: 'create' | 'view';
     onSuccess?: () => void;
 }
+
+export interface InvoiceCostCenterViewDTO {
+    id: string;
+    contractId: string;
+    number: number;
+    totalAmount: number;
+    issueDate: string;
+    dueDate: string;
+    status: string;
+    serviceDescription: string;
+    serviceType: string;
+    items: {
+        sectorId: string;
+        sectorName: string;
+        costCenterCode: string;
+        allocation: number;
+        percentage: number;
+    }[];
+}
