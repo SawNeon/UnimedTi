@@ -36,20 +36,17 @@ export interface ApportionmentItem {
     isManual: boolean;
 }
 
-export interface InvoiceModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    contract: ContractMonthResponse | null;
-    mode: 'create' | 'view';
-    onSuccess?: () => void;
-}
-
-export interface ApportionmentItem {
-    sectorId: string;
-    sectorName: string;
-    allocation: number;
-    percentage: number;
-    isManual: boolean;
+export interface InvoiceApportionmentTemplateDTO {
+    sourceInvoiceId: string;
+    sourceInvoiceNumber: number;
+    sourceIssueDate: string;
+    sourceTotalAmount: number;
+    items: {
+        sectorId: string;
+        sectorName: string;
+        allocation: number;
+        percentage: number;
+    }[];
 }
 
 export interface InvoiceModalProps {
@@ -57,6 +54,7 @@ export interface InvoiceModalProps {
     onClose: () => void;
     contract: ContractMonthResponse | null;
     mode: 'create' | 'view';
+    referenceMonth?: string;
     onSuccess?: () => void;
 }
 

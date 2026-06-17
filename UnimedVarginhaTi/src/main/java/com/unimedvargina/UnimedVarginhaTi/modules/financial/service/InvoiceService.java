@@ -1,5 +1,6 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.service;
 
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceApportionmentTemplateDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
@@ -16,7 +17,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -105,5 +109,49 @@ public class InvoiceService {
                 invoice.getContract().getServiceType(),
                 items
         );
+    }
+
+    public Optional<InvoiceApportionmentTemplateDTO> findPreviousMonthApportionmentTemplate(
+            UUID contractId,
+            LocalDate referenceDate
+    ) {
+        YearMonth previousMonth = YearMonth.from(referenceDate).minusMonths(1);
+        LocalDate startDate = previousMonth.atDay(1);
+        LocalDate endDate = previousMonth.atEndOfMonth();
+
+        return invoiceRepository.findByContractIdAndMonthRange(contractId, startDate, endDate)
+                .map(invoice -> {
+                    BigDecimal totalAmount = invoice.getAmount();
+
+                    List<InvoiceApportionmentTemplateDTO.ApportionmentTemplateItemDTO> items =
+                            apportionmentRepository.findByInvoiceId(invoice.getId())
+                                    .stream()
+                                    .map(apportionment -> {
+                                        BigDecimal allocation = apportionment.getAllocation();
+                                        BigDecimal percentage = BigDecimal.ZERO;
+
+                                        if (totalAmount != null && totalAmount.compareTo(BigDecimal.ZERO) > 0) {
+                                            percentage = allocation
+                                                    .multiply(BigDecimal.valueOf(100))
+                                                    .divide(totalAmount, 6, RoundingMode.HALF_UP);
+                                        }
+
+                                        return new InvoiceApportionmentTemplateDTO.ApportionmentTemplateItemDTO(
+                                                apportionment.getSector().getId(),
+                                                apportionment.getSector().getName(),
+                                                allocation,
+                                                percentage
+                                        );
+                                    })
+                                    .toList();
+
+                    return new InvoiceApportionmentTemplateDTO(
+                            invoice.getId(),
+                            invoice.getNumber(),
+                            invoice.getIssueDate(),
+                            totalAmount,
+                            items
+                    );
+                });
     }
 }

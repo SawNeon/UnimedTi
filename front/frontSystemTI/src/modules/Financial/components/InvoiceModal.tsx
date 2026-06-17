@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "./InvoiceModal.module.css";
 import { Lock, LockOpen, Plus, Trash } from "@phosphor-icons/react";
 import { SectorService } from "../../../shared/services/sectorService";
 import type { ContractMonthResponse } from "../types/Contract";
+import type { InvoiceApportionmentTemplateDTO } from "../types/Invoice";
+import { InvoiceService } from "../services/InvoiceService";
 import { api } from "../../../shared/services/api";
 
 
@@ -24,6 +26,7 @@ interface InvoiceModalProps {
     onClose: () => void;
     contract: ContractMonthResponse | null;
     mode: 'create' | 'view';
+    referenceMonth?: string;
     onSuccess?: () => void;
 }
 
@@ -42,7 +45,9 @@ interface InvoiceViewResponse {
     }[];
 }
 
-export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
+const roundMoney = (value: number) => Number(value.toFixed(2));
+
+export function InvoiceModal({ isOpen, onClose, contract, mode, referenceMonth, onSuccess }: InvoiceModalProps) {
     const modalKey = `${mode}-${contract?.currentInvoice?.id ?? contract?.id ?? 'empty'}-${isOpen ? 'open' : 'closed'}`;
 
     return (
@@ -52,12 +57,13 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, onSuccess }: Inv
             onClose={onClose}
             contract={contract}
             mode={mode}
+            referenceMonth={referenceMonth}
             onSuccess={onSuccess}
         />
     );
 }
 
-function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: InvoiceModalProps) {
+function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, onSuccess }: InvoiceModalProps) {
     const [number, setNumber] = useState<number | "">("");
     const [totalAmount, setTotalAmount] = useState<number>(0);
     const [issueDate, setIssueDate] = useState<string>("");
@@ -66,17 +72,90 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
     const [allSectors, setAllSectors] = useState<SectorFromDB[]>([]);
     const [selectedSectorId, setSelectedSectorId] = useState<string>("");
     const [items, setItems] = useState<ApportionmentItem[]>([]);
+    const [apportionmentTemplate, setApportionmentTemplate] = useState<InvoiceApportionmentTemplateDTO | null>(null);
+    const [loadingTemplate, setLoadingTemplate] = useState(false);
+    const [templateMessage, setTemplateMessage] = useState<string | null>(null);
+
+    const getDefaultIssueDate = useCallback(() => {
+        return referenceMonth ? `${referenceMonth}-01` : new Date().toISOString().slice(0, 10);
+    }, [referenceMonth]);
+
+    const getTemplateReferenceDate = useCallback(() => {
+        return issueDate || getDefaultIssueDate();
+    }, [getDefaultIssueDate, issueDate]);
+
+    const buildItemsFromTemplate = useCallback((
+        template: InvoiceApportionmentTemplateDTO,
+        amount: number
+    ): ApportionmentItem[] => {
+        return template.items.map(item => {
+            const percentage = Number(item.percentage);
+            const allocation = amount > 0
+                ? roundMoney((percentage / 100) * amount)
+                : Number(item.allocation);
+
+            return {
+                sectorId: item.sectorId,
+                sectorName: item.sectorName,
+                allocation,
+                percentage: Number(percentage.toFixed(2)),
+                isManual: false
+            };
+        });
+    }, []);
+
+    const applyTemplate = useCallback((template: InvoiceApportionmentTemplateDTO, amount: number) => {
+        setItems(buildItemsFromTemplate(template, amount));
+        setTemplateMessage(
+            `Padrão do mês anterior aplicado com base na nota ${template.sourceInvoiceNumber}.`
+        );
+    }, [buildItemsFromTemplate]);
+
+    const loadPreviousTemplate = useCallback(async (referenceDate: string, amount: number) => {
+        if (!contract?.id) return;
+
+        setLoadingTemplate(true);
+        setTemplateMessage(null);
+
+        try {
+            const template = await InvoiceService.getPreviousApportionmentTemplate(contract.id, referenceDate);
+            setApportionmentTemplate(template);
+
+            if (template && template.items.length > 0) {
+                applyTemplate(template, amount);
+                return;
+            }
+
+            setTemplateMessage("Nenhum padrão encontrado no mês anterior para este contrato.");
+        } catch (error) {
+            console.error("Erro ao buscar padrão de rateio anterior:", error);
+            setTemplateMessage("Não foi possível buscar o padrão do mês anterior.");
+        } finally {
+            setLoadingTemplate(false);
+        }
+    }, [applyTemplate, contract?.id]);
 
     useEffect(() => {
 
         if (!isOpen || !contract) return;
 
         if (mode === 'create') {
+            const defaultIssueDate = getDefaultIssueDate();
+            setIssueDate(defaultIssueDate);
+            setDueDate("");
+            setNumber("");
+            setTotalAmount(0);
+            setItems([]);
+            setApportionmentTemplate(null);
+            setTemplateMessage(null);
+
             SectorService.getByContract(contract.id)
                 .then((data: SectorFromDB[]) => {
                     setAllSectors(data);
                 })
                 .catch(err => console.error("Erro ao buscar setores", err));
+
+            loadPreviousTemplate(defaultIssueDate, 0);
             return;
         }
         if (mode === 'view') {
@@ -113,7 +192,7 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
                 })
                 .catch(err => console.error("Erro ao buscar nota fiscal", err));
         }
-    }, [isOpen, contract, mode]);
+    }, [getDefaultIssueDate, isOpen, contract, loadPreviousTemplate, mode]);
 
     const balanceSectors = (total: number, currentItems: ApportionmentItem[]) => {
         if (total <= 0 || currentItems.length === 0) return;
@@ -125,13 +204,17 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
         const remainingMoney = total - totalManualMoney;
 
         if (autoItems.length > 0) {
-            const distributedValue = remainingMoney > 0 ? remainingMoney / autoItems.length : 0;
-            const distributedPercent = (distributedValue / total) * 100;
+            const autoPercentageTotal = autoItems.reduce((sum, item) => sum + Number(item.percentage || 0), 0);
+            const shouldUsePercentages = autoPercentageTotal > 0;
 
             currentItems.forEach(item => {
                 if (!item.isManual) {
-                    item.allocation = Number(distributedValue.toFixed(2));
-                    item.percentage = Number(distributedPercent.toFixed(2));
+                    const distributedValue = shouldUsePercentages
+                        ? remainingMoney * (Number(item.percentage || 0) / autoPercentageTotal)
+                        : remainingMoney > 0 ? remainingMoney / autoItems.length : 0;
+
+                    item.allocation = roundMoney(distributedValue);
+                    item.percentage = total > 0 ? Number(((item.allocation / total) * 100).toFixed(2)) : 0;
                 }
             });
         }
@@ -175,7 +258,7 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
         setTotalAmount(val);
         const updated = items.map(item => {
             if (item.isManual) {
-                item.percentage = Number(((item.allocation / val) * 100).toFixed(2));
+                item.percentage = val > 0 ? Number(((item.allocation / val) * 100).toFixed(2)) : 0;
             }
             return item;
         });
@@ -202,6 +285,10 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
         const updated = [...items];
         updated[index].isManual = !updated[index].isManual;
         balanceSectors(totalAmount, updated);
+    };
+
+    const handleReloadTemplate = () => {
+        loadPreviousTemplate(getTemplateReferenceDate(), totalAmount);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -282,6 +369,31 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, onSuccess }: Inv
                     </div>
 
                     <hr className={styles.divider} />
+
+                    {!isView && (
+                        <div className={styles.templateBox}>
+                            <div>
+                                <strong>Padrão de rateio</strong>
+                                <p>
+                                    {templateMessage ?? "Ao lançar a nota, o sistema busca o rateio do mês anterior deste contrato."}
+                                </p>
+                                {apportionmentTemplate && (
+                                    <span>
+                                        Origem: nota {apportionmentTemplate.sourceInvoiceNumber} de {apportionmentTemplate.sourceIssueDate}
+                                    </span>
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                className={styles.templateButton}
+                                onClick={handleReloadTemplate}
+                                disabled={loadingTemplate}
+                            >
+                                {loadingTemplate ? "Buscando..." : "Reaplicar padrão"}
+                            </button>
+                        </div>
+                    )}
 
                     {!isView && (
                         <div className={styles.selectionBox}>

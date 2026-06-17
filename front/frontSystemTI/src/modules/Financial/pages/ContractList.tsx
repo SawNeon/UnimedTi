@@ -196,6 +196,7 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                 onClose={() => setModalOpen(false)}
                 contract={selectedContract}
                 mode={modalMode}
+                referenceMonth={selectedMonth}
                 onSuccess={() => loadContractsAndInvoices(currentPage, selectedMonth)} // Recarrega a tabela se salvar com sucesso
             />
         </div>
