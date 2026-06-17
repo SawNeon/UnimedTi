@@ -19,11 +19,17 @@ spring:
     password: ${DB_PASSWORD:change-me}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa: { show-sql: ${JPA_SHOW_SQL:true}, hibernate: { ddl-auto: ${JPA_DDL_AUTO:update} }, properties: { hibernate: { dialect: org.hibernate.dialect.MySQLDialect } } }
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
 
   mail:
-    host: smtp-mail.outlook.com
-    port: 587
+    host: ${MAIL_HOST:smtp-mail.outlook.com}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
@@ -41,4 +47,3 @@ api:
   security:
     token:
       secret: ${JWT_SECRET:change-me-in-production}
-
