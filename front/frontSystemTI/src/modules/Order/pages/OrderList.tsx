@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { OrderDTO } from "../types/Order";
 import { OrderService } from "../services/OrderService";
 import styles from "./OrderList.module.css";
@@ -10,12 +10,7 @@ import { DeliverModal } from "../components/DeliverModal";
 interface OrderWithSector extends Omit<OrderDTO, 'sector'> {
     sector?: (SectorDTO & { name: string });
 }
-
-
-
-interface OrderListProps { }
-
-export function OrderList({ }: OrderListProps) {
+export function OrderList() {
     const [orders, setOrders] = useState<OrderWithSector[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
@@ -29,11 +24,7 @@ export function OrderList({ }: OrderListProps) {
 
 
 
-    useEffect(() => {
-        loadOrders(currentPage);
-    }, [currentPage]);
-
-    const loadOrders = async (page: number) => {
+    const loadOrders = useCallback(async (page: number) => {
         setLoading(true);
         try {
             const response = await OrderService.getAll(page - 1, itemsPerPage);
@@ -63,7 +54,11 @@ export function OrderList({ }: OrderListProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [itemsPerPage]);
+
+    useEffect(() => {
+        loadOrders(currentPage);
+    }, [currentPage, loadOrders]);
 
     const handleOpenDeliveryModal = (order: OrderWithSector) => {
         if (order.id) {
