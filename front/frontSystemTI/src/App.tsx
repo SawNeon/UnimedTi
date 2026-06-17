@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './index.css';
 
 import { ProductForm } from './modules/Stock/pages/ProductForm';
@@ -28,6 +28,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
+import { AUTH_REQUIRED_EVENT, AUTH_TOKEN_KEY } from './shared/services/authSession';
 import { Login } from './modules/Auth/pages/Login';
 
 type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial';
@@ -42,6 +43,34 @@ function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('list');
   const [editingItem, setEditingItem] = useState<ProductDTO | AssetDTO | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sendToLogin = () => {
+      setIsAuthenticated(false);
+      setActiveModule('welcome');
+      setActiveScreen('list');
+      setEditingItem(null);
+      setSelectedInvoiceId(null);
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === AUTH_TOKEN_KEY && !event.newValue) {
+        sendToLogin();
+      }
+    };
+
+    window.addEventListener(AUTH_REQUIRED_EVENT, sendToLogin);
+    window.addEventListener('storage', handleStorageChange);
+
+    if (!AuthService.isAuthenticated()) {
+      sendToLogin();
+    }
+
+    return () => {
+      window.removeEventListener(AUTH_REQUIRED_EVENT, sendToLogin);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
@@ -72,7 +101,6 @@ function App() {
 
   const handleLogout = () => {
     AuthService.logout();
-    setIsAuthenticated(false);
   };
 
   const handleOpenCostCenters = (invoiceId: string) => {
@@ -268,7 +296,7 @@ function App() {
   );
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return <Login onLoginSuccess={() => setIsAuthenticated(AuthService.isAuthenticated())} />;
   }
 
   return (

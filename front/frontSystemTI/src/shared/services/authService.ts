@@ -1,4 +1,5 @@
 import { api } from './api';
+import { clearAuthToken, getAuthToken, notifyAuthRequired, setAuthToken } from './authSession';
 
 interface LoginRequest {
   login: string;
@@ -10,24 +11,24 @@ interface LoginResponse {
 }
 
 export const AuthService = {
-  
   login: async (credentials: LoginRequest) => {
 
     const response = await api.post<LoginResponse>('/auth/login', credentials);
-    
+
     const { token } = response.data;
     if (token) {
-      localStorage.setItem('token', token);
+      setAuthToken(token);
     }
-    
+
     return response.data;
   },
 
   logout: () => {
-    localStorage.removeItem('token');
+    clearAuthToken();
+    notifyAuthRequired();
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    return !!getAuthToken();
   }
 };
