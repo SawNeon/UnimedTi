@@ -19,7 +19,13 @@ spring:
     password: ${DB_PASSWORD:change-me}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa: { show-sql: ${JPA_SHOW_SQL:true}, hibernate: { ddl-auto: ${JPA_DDL_AUTO:update} }, properties: { hibernate: { dialect: org.hibernate.dialect.MySQLDialect } } }
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
 
   mail:
     host: smtp-mail.outlook.com
