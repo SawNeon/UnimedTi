@@ -3,6 +3,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.orders.service;
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.Order;
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.OrderStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.orders.repository.OrderRepository;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,8 @@ public class OrderService {
     @Transactional
     public Order deliverOrder(UUID orderId, MultipartFile invoiceFile) {
 
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido", orderId));
 
         String invoicePath = fileStorageService.storeFile(invoiceFile, "orders/invoices");
         order.setInvoice(invoicePath);

@@ -2,9 +2,10 @@ package com.unimedvargina.UnimedVarginhaTi.modules.assets.service;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.Asset;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.repository.AssetRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,8 @@ public class AssetService {
 
     public Asset create(Asset asset) {
         if (repository.existsByAssetTag(asset.getAssetTag())) {
-            throw new RuntimeException("The item is registered with this number tag.!");
+            throw new BusinessRuleException(
+                    "Já existe um ativo cadastrado com a etiqueta " + asset.getAssetTag() + ".");
         }
         return repository.save(asset);
     }
@@ -30,7 +32,7 @@ public class AssetService {
 
     public Asset findById(UUID id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Asset not find!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ativo", id));
     }
 
     public Asset update(Asset asset) {

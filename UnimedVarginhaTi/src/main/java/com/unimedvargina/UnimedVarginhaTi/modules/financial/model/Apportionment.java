@@ -24,7 +24,7 @@ public class Apportionment extends BaseEntity {
     @JoinColumn(name = "sector_id", nullable = false)
     private Sector sector;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal allocation;
 
 }

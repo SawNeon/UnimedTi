@@ -4,26 +4,34 @@ import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.InventoryMovem
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.repository.InventoryMovementRepository;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.repository.ProductRepository;
-import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.Order;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class ProductService {
+
+    /**
+     * Tipos de movimentação de estoque. Padronizados em maiúsculo — antes a entrada
+     * gravava "in" e a saída "OUT", o que quebrava qualquer filtro por tipo.
+     */
+    public static final String MOVEMENT_IN = "IN";
+    public static final String MOVEMENT_OUT = "OUT";
+
     @Autowired
     private ProductRepository repository;
 
-    public Product save(Product product){
+    @Autowired
+    private InventoryMovementRepository movementRepository;
+
+    public Product save(Product product) {
         return repository.save(product);
     }
 
@@ -31,24 +39,28 @@ public class ProductService {
         return repository.findAll();
     }
 
-    public Product update(Product product) { return repository.save(product); }
+    public Product update(Product product) {
+        return repository.save(product);
+    }
 
-    public void delete(UUID id) { repository.deleteById(id);}
+    public void delete(UUID id) {
+        repository.deleteById(id);
+    }
 
-    public Product findById(UUID id) { return repository.findById(id).orElseThrow(() -> new RuntimeException("Product not found!"));}
-
-    @Autowired
-    private InventoryMovementRepository movementRepository;
+    public Product findById(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto", id));
+    }
 
     @Transactional
     public Product addStock(UUID productId, InventoryMovements movementRequest) {
         Product product = findById(productId);
+        int quantity = requirePositiveQuantity(movementRequest);
 
-        int newStock = product.getCurrentStock() + movementRequest.getQuantity();
-        product.setCurrentStock(newStock);
+        product.setCurrentStock(product.getCurrentStock() + quantity);
 
         movementRequest.setProduct(product);
-        movementRequest.setType("in");
+        movementRequest.setType(MOVEMENT_IN);
         movementRepository.save(movementRequest);
 
         return repository.save(product);
@@ -57,22 +69,36 @@ public class ProductService {
     @Transactional
     public Product removeStock(UUID productId, InventoryMovements movementRequest) {
         Product product = findById(productId);
+        int quantity = requirePositiveQuantity(movementRequest);
 
-        if (product.getCurrentStock() < movementRequest.getQuantity()) {
-            throw new IllegalArgumentException("stock lower than current stock.");
+        if (product.getCurrentStock() < quantity) {
+            throw new BusinessRuleException(
+                    "Saída de %d unidade(s) maior que o estoque atual de %s (%d)."
+                            .formatted(quantity, product.getName(), product.getCurrentStock()));
         }
 
-        int newStock = product.getCurrentStock() - movementRequest.getQuantity();
-        product.setCurrentStock(newStock);
+        product.setCurrentStock(product.getCurrentStock() - quantity);
 
         movementRequest.setProduct(product);
-        movementRequest.setType("OUT");
+        movementRequest.setType(MOVEMENT_OUT);
         movementRepository.save(movementRequest);
 
         return repository.save(product);
     }
+
     public Page<Product> getAllProductsPaginated(int page, int size) {
         return repository.findAll(PageRequest.of(page, size));
     }
 
+    /**
+     * Impede movimentação com quantidade nula, zero ou negativa — uma entrada
+     * negativa era aceita e diminuía o estoque silenciosamente.
+     */
+    private int requirePositiveQuantity(InventoryMovements movement) {
+        Integer quantity = movement.getQuantity();
+        if (quantity == null || quantity <= 0) {
+            throw new BusinessRuleException("A quantidade da movimentação deve ser maior que zero.");
+        }
+        return quantity;
+    }
 }

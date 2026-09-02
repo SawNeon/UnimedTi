@@ -3,14 +3,11 @@ package com.unimedvargina.UnimedVarginhaTi.modules.inventory.controller;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.InventoryMovements;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.model.Product;
 import com.unimedvargina.UnimedVarginhaTi.modules.inventory.service.ProductService;
-import com.unimedvargina.UnimedVarginhaTi.modules.orders.model.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -23,10 +20,6 @@ public class ProductController {
     @PostMapping
     public Product create(@RequestBody Product product) {
         return service.save(product);
-    }
-
-    public List<Product> listAll(){
-        return service.listAll();
     }
 
     @GetMapping

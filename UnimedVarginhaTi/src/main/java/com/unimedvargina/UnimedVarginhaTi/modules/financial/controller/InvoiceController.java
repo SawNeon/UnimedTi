@@ -5,6 +5,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDT
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.service.InvoiceService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class InvoiceController {
     private InvoiceService invoiceService;
 
     @PostMapping
-    public ResponseEntity<Invoice> create(@RequestBody InvoiceRequestDTO invoice){
+    public ResponseEntity<Invoice> create(@Valid @RequestBody InvoiceRequestDTO invoice){
         Invoice savedInvoice = invoiceService.createInvoiceWithApportionment(invoice);
         return ResponseEntity.ok(savedInvoice);
     }

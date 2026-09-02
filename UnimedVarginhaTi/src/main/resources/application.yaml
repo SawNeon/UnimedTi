@@ -10,19 +10,29 @@ spring:
   application:
     name: gestao-setor-api
 
+  # O schema é versionado em db/migration. baseline-on-migrate cobre o banco de
+  # desenvolvimento que já existia antes do Flyway: se ele tiver tabelas e nenhum
+  # histórico, é marcado como já estando na V1 em vez de tentar recriá-la.
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
 
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/SystemTI?createDatabaseIfNotExist=true&serverTimezone=UTC}
-    username: root
-    password: Unimed@2026!
+    username: ${DB_USERNAME:root}
+    # ATENÇÃO: o valor padrão abaixo é só para desenvolvimento local. Em produção
+    # defina DB_PASSWORD por variável de ambiente e remova este default.
+    password: ${DB_PASSWORD:Unimed@2026!}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      # validate: o Hibernate confere se as entidades batem com o schema criado
+      # pelas migrations, mas nunca altera o banco. Não volte para update/create —
+      # isso reescreveria o schema por baixo das migrations.
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect

@@ -30,6 +30,7 @@ public class Invoice extends BaseEntity {
     private LocalDate dueDate;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private InvoiceStatus status;
 
 }

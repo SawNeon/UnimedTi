@@ -5,8 +5,9 @@ import com.unimedvargina.UnimedVarginhaTi.modules.users.dto.LoginResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.dto.RegisterDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.repository.UserRepository;
-import com.unimedvargina.UnimedVarginhaTi.modules.users.service.EmailService;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.service.TokenService;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -35,7 +36,7 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody AuthenticationDTO data) {
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody AuthenticationDTO data) {
 
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
 
@@ -47,10 +48,11 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity register(@RequestBody RegisterDTO data) {
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterDTO data) {
 
-        if (this.repository.findByLogin(data.login()) != null) return ResponseEntity.badRequest().build();
-
+        if (this.repository.findByLogin(data.login()) != null) {
+            throw new BusinessRuleException("Já existe um usuário com o login " + data.login() + ".");
+        }
 
         String encryptedPassword = passwordEncoder.encode(data.password());
 

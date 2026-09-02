@@ -5,6 +5,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.ContractRepository;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.InvoiceRepository;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -60,7 +61,10 @@ public class ContractService {
 
     public Contract save(Contract contract) { return contractRepository.save(contract); }
 
-    public Contract findById(UUID id) { return contractRepository.findById(id).orElseThrow(() -> new RuntimeException("Contract not found!"));}
+    public Contract findById(UUID id) {
+        return contractRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato", id));
+    }
 
     public List<Contract> findAll() { return contractRepository.findAll(); }
 

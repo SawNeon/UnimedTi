@@ -5,7 +5,9 @@ import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetMovements;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.model.AssetStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.assets.repository.AssetMovementsRepository;
 import com.unimedvargina.UnimedVarginhaTi.modules.users.model.User;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,7 @@ public class AssetMovementService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not logged in.");
+            throw new AuthenticationCredentialsNotFoundException("Usuário não autenticado.");
         }
 
         return (User) authentication.getPrincipal();
@@ -51,7 +53,10 @@ public class AssetMovementService {
 
     public AssetMovements returnAsset(UUID assetId) {
 
-        AssetMovements openMovement = assetMovementsRepository.findFirstByAssetIdAndActualReturnDateIsNullOrderByCreatedAtDesc(assetId).orElseThrow(() -> new RuntimeException(("Not exist movement for this asset.")));
+        AssetMovements openMovement = assetMovementsRepository
+                .findFirstByAssetIdAndActualReturnDateIsNullOrderByCreatedAtDesc(assetId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Não há empréstimo em aberto para o ativo " + assetId + "."));
 
         openMovement.setActualReturnDate(LocalDateTime.now());
 

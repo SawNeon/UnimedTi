@@ -32,6 +32,7 @@ public class Contract extends BaseEntity {
     private LocalDate endDate;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private ContractStatus status;
 
 }
