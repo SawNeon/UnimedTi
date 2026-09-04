@@ -60,7 +60,10 @@ public class ContractService {
                             current.getIssueDate(),
                             current.getDueDate(),
                             current.getStatus(),
-                            current.getCostAllocation());
+                            current.getCostAllocation(),
+                            current.getDeliveryTarget(),
+                            current.getDeliveryDeadline(),
+                            current.getDeliveredAt());
 
             BigDecimal currentAmount = current == null ? null : current.getAmount();
 

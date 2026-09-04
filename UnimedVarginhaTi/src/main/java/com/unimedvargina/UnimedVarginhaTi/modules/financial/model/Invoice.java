@@ -70,4 +70,20 @@ public class Invoice extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private CostAllocationType costAllocation;
 
+    /** Para quem a nota vai. O TI entrega ao Suporte Adm, que repassa ao Financeiro. */
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private InvoiceDeliveryTarget deliveryTarget;
+
+    /**
+     * Ate quando o TI precisa entregar. Calculado a partir do vencimento pelo
+     * InvoiceDeliveryScheduler, mas GRAVADO e editavel: em semana de feriado o
+     * calendario manda antecipar, e o sistema nao conhece os feriados.
+     */
+    @Column(nullable = false)
+    private LocalDate deliveryDeadline;
+
+    /** Quando foi efetivamente entregue. Nulo enquanto nao saiu do TI. */
+    private LocalDate deliveredAt;
+
 }

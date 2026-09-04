@@ -5,6 +5,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDT
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceDeliveryTarget;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
@@ -42,6 +43,9 @@ public class InvoiceService {
     @Autowired
     private SectorService sectorService;
 
+    @Autowired
+    private InvoiceDeliveryScheduler deliveryScheduler;
+
     @Transactional
     public Invoice createInvoiceWithApportionment(InvoiceRequestDTO dto) {
         Contract contract = contractService.findById(dto.contractId());
@@ -62,6 +66,12 @@ public class InvoiceService {
         invoice.setDueDate(dto.dueDate());
         invoice.setStatus(InvoiceStatus.ISSUED);
         invoice.setCostAllocation(dto.costAllocation());
+        invoice.setDeliveryTarget(dto.deliveryTarget() == null
+                ? InvoiceDeliveryTarget.SUPORTE_ADM
+                : dto.deliveryTarget());
+        invoice.setDeliveryDeadline(dto.deliveryDeadline() == null
+                ? deliveryScheduler.deliveryDeadline(dto.dueDate())
+                : dto.deliveryDeadline());
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
 
@@ -159,6 +169,30 @@ public class InvoiceService {
             throw new BusinessRuleException(
                     "A data de vencimento não pode ser anterior à data de emissão.");
         }
+    }
+
+    /**
+     * Registra a entrega da nota. A data e informada porque a entrega costuma ser
+     * lancada depois do fato -- forcar "hoje" gravaria a data errada.
+     */
+    @Transactional
+    public InvoiceResponseDTO markAsDelivered(UUID id, LocalDate deliveredAt) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fatura", id));
+
+        if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
+            throw new BusinessRuleException("Não é possível entregar uma nota cancelada.");
+        }
+        if (deliveredAt.isBefore(invoice.getIssueDate())) {
+            throw new BusinessRuleException(
+                    "A data de entrega não pode ser anterior à emissão da nota.");
+        }
+
+        invoice.setDeliveredAt(deliveredAt);
+        invoice.setStatus(InvoiceStatus.DELIVERED);
+        invoiceRepository.save(invoice);
+
+        return findByIdWithApportionments(id);
     }
 
     public InvoiceResponseDTO findByIdWithApportionments(UUID id) {

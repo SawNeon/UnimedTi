@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -51,6 +52,13 @@ class InvoiceServiceTest {
 
     @Mock
     private SectorService sectorService;
+
+    /**
+     * Instancia real, e nao mock: e um calculador puro de datas, sem dependencia.
+     * Mocka-lo esconderia justamente o prazo que as regras do calendario produzem.
+     */
+    @Spy
+    private InvoiceDeliveryScheduler deliveryScheduler = new InvoiceDeliveryScheduler();
 
     @InjectMocks
     private InvoiceService invoiceService;
@@ -164,6 +172,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 10),
                 LocalDate.of(2026, 3, 5),
                 CostAllocationType.APPORTIONED,
+                null, null,
                 List.of(item(SECTOR_A, "100.00")));
 
         assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
@@ -202,6 +211,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 2, 28),
                 LocalDate.of(2026, 3, 15),
                 CostAllocationType.ENTERPRISE,
+                null, null,
                 List.of());
 
         Invoice saved = invoiceService.createInvoiceWithApportionment(request);
@@ -220,6 +230,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
                 CostAllocationType.ENTERPRISE,
+                null, null,
                 List.of(item(SECTOR_A, "100.00")));
 
         assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
@@ -239,6 +250,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
                 CostAllocationType.APPORTIONED,
+                null, null,
                 List.of());
 
         assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
@@ -281,6 +293,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
                 CostAllocationType.ENTERPRISE,
+                null, null,
                 List.of());
 
         Invoice saved = invoiceService.createInvoiceWithApportionment(request);
@@ -299,6 +312,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
                 CostAllocationType.ENTERPRISE,
+                null, null,
                 List.of());
 
         assertThat(invoiceService.createInvoiceWithApportionment(request).getNumber())
@@ -312,6 +326,7 @@ class InvoiceServiceTest {
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
                 CostAllocationType.APPORTIONED,
+                null, null,
                 List.of(items));
     }
 

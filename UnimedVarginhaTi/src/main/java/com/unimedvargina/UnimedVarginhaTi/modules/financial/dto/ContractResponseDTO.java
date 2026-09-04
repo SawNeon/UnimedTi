@@ -3,6 +3,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.financial.dto;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.ContractStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceComparison;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceDeliveryTarget;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
 
 import java.math.BigDecimal;
@@ -45,6 +46,11 @@ public record ContractResponseDTO(
             LocalDate issueDate,
             LocalDate dueDate,
             InvoiceStatus status,
-            CostAllocationType costAllocation
+            CostAllocationType costAllocation,
+            InvoiceDeliveryTarget deliveryTarget,
+            /** Prazo do TI para entregar, vindo do calendário do Financeiro. */
+            LocalDate deliveryDeadline,
+            /** Nulo enquanto a nota não saiu do TI. */
+            LocalDate deliveredAt
     ) {}
 }

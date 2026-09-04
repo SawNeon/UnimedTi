@@ -1,6 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.dto;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceDeliveryTarget;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -45,6 +46,15 @@ public record InvoiceRequestDTO(
 
         @NotNull(message = "Informe o destino do custo: rateio por centro de custo ou CNPJ.")
         CostAllocationType costAllocation,
+
+        /** Opcional: sem valor, assume Suporte Adm, o caminho das notas de contrato. */
+        InvoiceDeliveryTarget deliveryTarget,
+
+        /**
+         * Opcional: sem valor, é calculado a partir do vencimento pelo calendário do
+         * Financeiro. Informe apenas para antecipar em semana de feriado.
+         */
+        LocalDate deliveryDeadline,
 
         @Valid
         List<ApportionmentItemDTO> items

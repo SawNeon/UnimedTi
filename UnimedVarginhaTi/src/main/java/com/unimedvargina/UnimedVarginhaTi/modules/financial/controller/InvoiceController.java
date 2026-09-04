@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -43,5 +44,14 @@ public class InvoiceController {
         return invoiceService.findPreviousMonthApportionmentTemplate(contractId, referenceDate)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Registra a entrega da nota ao Suporte Adm ou ao Financeiro. */
+    @PreAuthorize("@access.canOperate('FINANCIAL')")
+    @PatchMapping("/{id}/delivered")
+    public ResponseEntity<InvoiceResponseDTO> markAsDelivered(
+            @PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveredAt) {
+        return ResponseEntity.ok(invoiceService.markAsDelivered(id, deliveredAt));
     }
 }
