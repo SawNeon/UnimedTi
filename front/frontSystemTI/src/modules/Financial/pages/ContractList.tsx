@@ -156,9 +156,9 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                                 </td>
                                                 <td>
                                                     {hasInvoice ? (
-                                                        <button className={styles.pageButton} style={{ borderColor: '#3a7d71', color: '#3a7d71' }} onClick={() => handleViewInvoice(contract)}>Visualizar</button>
+                                                        <button className={styles.pageButton} style={{ borderColor: '#146556', color: '#146556' }} onClick={() => handleViewInvoice(contract)}>Visualizar</button>
                                                     ) : (
-                                                        <button className={styles.pageButton} style={{ backgroundColor: '#e0f2f1', color: '#3a7d71', borderColor: '#3a7d71' }} onClick={() => handleLaunchInvoice(contract)}>Lançar Nota</button>
+                                                        <button className={styles.pageButton} style={{ backgroundColor: '#e0f2f1', color: '#146556', borderColor: '#146556' }} onClick={() => handleLaunchInvoice(contract)}>Lançar Nota</button>
                                                     )}
                                                 </td>
                                             </tr>

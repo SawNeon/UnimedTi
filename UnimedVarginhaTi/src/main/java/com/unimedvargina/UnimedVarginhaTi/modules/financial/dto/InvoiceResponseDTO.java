@@ -10,7 +10,7 @@ import java.util.UUID;
 public record InvoiceResponseDTO(
         UUID id,
         UUID contractId,
-        Integer number,
+        String number,
         BigDecimal totalAmount,
         LocalDate issueDate,
         LocalDate dueDate,

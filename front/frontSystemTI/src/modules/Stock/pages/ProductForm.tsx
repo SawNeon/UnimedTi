@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ProductService } from '../services/ProductService';
-import type { ProductDTO } from '../types/Product';
+import type { ProductDTO, ProductFormPayload } from '../types/Product';
 import styles from './ProductForm.module.css';
 import { PlusCircle, Package } from '@phosphor-icons/react';
 
@@ -11,9 +11,12 @@ import { PlusCircle, Package } from '@phosphor-icons/react';
 interface ProductFormProps {
   productToEdit?: ProductDTO | null;
   onSuccess: () => void;
+  /** Estoque em contexto: o ponto de pedido gravado é o desta unidade. */
+  unitId: string;
+  unitName: string;
 }
 
-export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
+export function ProductForm({ productToEdit, onSuccess, unitId, unitName }: ProductFormProps) {
   const formKey = productToEdit?.id ?? 'new-product';
 
   return (
@@ -21,17 +24,18 @@ export function ProductForm({ productToEdit, onSuccess }: ProductFormProps) {
       key={formKey}
       productToEdit={productToEdit}
       onSuccess={onSuccess}
+      unitId={unitId}
+      unitName={unitName}
     />
   );
 }
 
-function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
-  const [formData, setFormData] = useState<ProductDTO>(() => productToEdit ?? {
-    name: '',
-    description: '',
-    currentStock: 0,
-    minStockLevel: 0
-  });
+function ProductFormFields({ productToEdit, onSuccess, unitId, unitName }: ProductFormProps) {
+  const [formData, setFormData] = useState<ProductFormPayload>(() => ({
+    name: productToEdit?.name ?? '',
+    description: productToEdit?.description ?? '',
+    minStockLevel: productToEdit?.minStockLevel ?? 0
+  }));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -46,10 +50,10 @@ function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
     try {
       if (productToEdit && productToEdit.id) {
 
-        await ProductService.update(productToEdit.id, formData);
+        await ProductService.update(productToEdit.id, formData, unitId);
         alert('Produto atualizado com sucesso!');
       } else {
-        await ProductService.create(formData);
+        await ProductService.create(formData, unitId);
         alert('Produto cadastrado com sucesso!');
       }
       onSuccess();
@@ -63,7 +67,7 @@ function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <PlusCircle size={28} color="#3a7d71" weight="bold" />
+          <PlusCircle size={28} color="#146556" weight="bold" />
           <h2 className={styles.title}>
             {productToEdit ? 'Editar Produto' : 'Novo Produto'}
           </h2>
@@ -97,27 +101,22 @@ function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
             />
           
 
-          <div style={{gap: '20px' }}>
-            <div style={{ flex: 1 }}>
-              <label className={styles.label}>Qtd Atual</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label className={styles.label}>Estoque Mínimo em {unitName}</label>
               <input
                 type="number"
-                className={styles.input}
-                name="currentStock"
-                value={formData.currentStock}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <label className={styles.label}>Estoque Mínimo</label>
-              <input
-                type="number"
+                min="0"
                 className={styles.input}
                 name="minStockLevel"
                 value={formData.minStockLevel}
                 onChange={handleChange}
+                required
               />
+              <small style={{ color: '#666', display: 'block' }}>
+                O ponto de pedido é próprio de cada estoque. O saldo entra por
+                movimentação, não por aqui.
+              </small>
             </div>
           </div>
 
@@ -132,7 +131,7 @@ function ProductFormFields({ productToEdit, onSuccess }: ProductFormProps) {
 
             <button
               type="submit"
-              style={{ flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               {productToEdit ? 'Salvar Alterações' : 'Cadastrar'}
             </button>

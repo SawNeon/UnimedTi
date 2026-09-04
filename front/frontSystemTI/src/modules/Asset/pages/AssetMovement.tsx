@@ -71,7 +71,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <ArrowsLeftRight size={28} color="#3a7d71" weight="bold" />
+          <ArrowsLeftRight size={28} color="#146556" weight="bold" />
           <h2 className={styles.title} style={{ margin: 0 }}>Movimentar Estoque</h2>
         </div>
         
@@ -125,7 +125,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
                    
                  </div>
 
-                 <div style={{gap: '20px' }}>
+                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                       <label className={styles.label}>Setor</label>
                       <select 
@@ -168,7 +168,7 @@ export function AssetMovement({ onSuccess }: AssetMovementProps) {
                  <button 
                     type="submit" 
                     disabled={loading}
-                    style={{flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
+                    style={{flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
                  >
                     {loading ? 'Processando...' : 'Confirmar'}
                  </button>
