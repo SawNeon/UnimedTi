@@ -6,9 +6,11 @@ import { Trash, PencilSimple } from "@phosphor-icons/react";
 
 interface ProductListProps {
     onEdit: (product: ProductDTO) => void;
+    /** Estoque que está sendo visto. Trocar de unidade recarrega a lista. */
+    unitId: string;
 }
 
-export function ProductList({ onEdit }: ProductListProps) {
+export function ProductList({ onEdit, unitId }: ProductListProps) {
     const [products, setProducts] = useState<ProductDTO[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
@@ -18,8 +20,10 @@ export function ProductList({ onEdit }: ProductListProps) {
     const [currentPage, setCurrentPage] = useState<number>(1);
 
     const loadProducts = useCallback(async (page: number) => {
+        if (!unitId) return;
+
         try {
-            const response = await ProductService.getAll(page - 1, itemsPerPage);
+            const response = await ProductService.getAll(page - 1, itemsPerPage, unitId);
             const data = response.content;
             setProducts(data);
             setTotalPages(response.totalPages);
@@ -30,7 +34,13 @@ export function ProductList({ onEdit }: ProductListProps) {
         } finally {
             setLoading(false);
         }
-    }, [itemsPerPage]);
+    }, [itemsPerPage, unitId]);
+
+    // Voltar para a primeira página ao trocar de estoque: a paginação do estoque
+    // anterior não vale para o novo.
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [unitId]);
 
     useEffect(() => {
         loadProducts(currentPage);
@@ -106,7 +116,7 @@ export function ProductList({ onEdit }: ProductListProps) {
                                         <td style={{ textAlign: 'right' }}>{product.currentStock}</td>
                                         <td style={{ textAlign: 'right' }}>{product.minStockLevel}</td>
                                         <td style={{ textAlign: 'center' }}>
-                                            {product.currentStock <= product.minStockLevel ? (
+                                            {product.belowMinimum ?? (product.currentStock <= product.minStockLevel) ? (
                                                 <span className={styles.lowStock}>BAIXO</span>
                                             ) : (
                                                 <span className={styles.goodStock}>OK</span>

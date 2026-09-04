@@ -209,6 +209,40 @@ select:focus-visible {
   margin-top: 4px;
 }
 
+/*
+ * Seletor de estoque. Fica em destaque no cabeçalho de propósito: saber em qual
+ * unidade se está é o que evita movimentar o estoque da equipe errada.
+ */
+.unit-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-brand-700);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+
+.unit-picker label {
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-brand-700);
+}
+
+.unit-picker select {
+  min-height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 750;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
 .header-actions {
   display: flex;
   flex-wrap: wrap;

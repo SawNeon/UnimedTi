@@ -4,6 +4,7 @@ import './index.css';
 import { ProductForm } from './modules/Stock/pages/ProductForm';
 import { ProductList } from './modules/Stock/pages/ProductList';
 import { ProductMovement } from './modules/Stock/pages/ProductMovement';
+import { ProductTransfer } from './modules/Stock/pages/ProductTransfer';
 import type { ProductDTO } from './modules/Stock/types/Product';
 
 import { AssetForm } from './modules/Asset/pages/AssetForm';
@@ -29,10 +30,13 @@ import {
 
 import { AuthService } from './shared/services/authService';
 import { AUTH_REQUIRED_EVENT, AUTH_TOKEN_KEY } from './shared/services/authSession';
+import { UnitService } from './shared/services/unitService';
+import { getSelectedUnitId, setSelectedUnitId } from './shared/services/unitSession';
+import type { OperationalUnitDTO } from './shared/types/OperationalUnit';
 import { Login } from './modules/Auth/pages/Login';
 
 type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial';
-type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters';
+type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters' | 'transfer';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -43,6 +47,10 @@ function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('list');
   const [editingItem, setEditingItem] = useState<ProductDTO | AssetDTO | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+  // Unidade operacional: Operadora ou Hospital. Define QUAL estoque está em tela.
+  const [units, setUnits] = useState<OperationalUnitDTO[]>([]);
+  const [activeUnitId, setActiveUnitId] = useState<string>('');
 
   useEffect(() => {
     const sendToLogin = () => {
@@ -71,6 +79,43 @@ function App() {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
+
+  // As unidades vêm do backend (seed da migration), não são fixas aqui. A escolha
+  // anterior é restaurada; se ela não existir mais, cai na primeira da lista.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    UnitService.getAll()
+      .then((data) => {
+        if (cancelled) return;
+        setUnits(data);
+
+        const stored = getSelectedUnitId();
+        const valid = data.find(u => u.id === stored) ?? data[0];
+        if (valid) {
+          setActiveUnitId(valid.id);
+          setSelectedUnitId(valid.id);
+        }
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar unidades operacionais:', error);
+      });
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
+
+  const handleChangeUnit = (unitId: string) => {
+    setActiveUnitId(unitId);
+    setSelectedUnitId(unitId);
+    // Trocar de estoque volta para a lista: um formulário aberto pertencia ao
+    // estoque anterior e salvá-lo na nova unidade seria um engano silencioso.
+    setActiveScreen('list');
+    setEditingItem(null);
+  };
+
+  const activeUnitName = units.find(u => u.id === activeUnitId)?.name ?? '';
 
   const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
@@ -123,7 +168,11 @@ function App() {
 
   const getPageDescription = () => {
     if (activeModule === 'welcome') return 'Escolha um módulo para começar sua rotina.';
-    if (activeModule === 'stock') return 'Produtos, saldos mínimos e movimentações de estoque.';
+    if (activeModule === 'stock') {
+      return activeUnitName
+        ? `Produtos, saldos mínimos e movimentações do estoque ${activeUnitName}.`
+        : 'Produtos, saldos mínimos e movimentações de estoque.';
+    }
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
@@ -176,20 +225,44 @@ function App() {
     }
 
     if (activeModule === 'stock') {
+      // Sem unidade resolvida não há "o estoque" — evita chamar a API sem unitId
+      // e receber 400 na cara do operador.
+      if (!activeUnitId) {
+        return <p style={{ padding: 20 }}>Carregando unidades...</p>;
+      }
+
       if (activeScreen === 'form') {
         return (
           <ProductForm
             productToEdit={editingItem as ProductDTO | null}
             onSuccess={handleBackToList}
+            unitId={activeUnitId}
+            unitName={activeUnitName}
           />
         );
       }
 
       if (activeScreen === 'movement') {
-        return <ProductMovement onSuccess={handleBackToList} />;
+        return (
+          <ProductMovement
+            onSuccess={handleBackToList}
+            unitId={activeUnitId}
+            unitName={activeUnitName}
+          />
+        );
       }
 
-      return <ProductList onEdit={handleEdit} />;
+      if (activeScreen === 'transfer') {
+        return (
+          <ProductTransfer
+            onSuccess={handleBackToList}
+            units={units}
+            currentUnitId={activeUnitId}
+          />
+        );
+      }
+
+      return <ProductList onEdit={handleEdit} unitId={activeUnitId} />;
     }
 
     if (activeModule === 'asset') {
@@ -287,6 +360,15 @@ function App() {
             {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
           </button>
         )}
+
+        {activeModule === 'stock' && (
+          <button
+            className={`header-action ${activeScreen === 'transfer' ? 'is-active' : ''}`}
+            onClick={() => setActiveScreen('transfer')}
+          >
+            Transferir
+          </button>
+        )}
       </nav>
     );
   };
@@ -359,6 +441,21 @@ function App() {
             <h2>{getPageTitle()}</h2>
             <p>{getPageDescription()}</p>
           </div>
+
+          {activeModule === 'stock' && units.length > 0 && (
+            <div className="unit-picker">
+              <label htmlFor="unit-select">Estoque</label>
+              <select
+                id="unit-select"
+                value={activeUnitId}
+                onChange={(e) => handleChangeUnit(e.target.value)}
+              >
+                {units.map(unit => (
+                  <option key={unit.id} value={unit.id}>{unit.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {renderModuleActions()}
         </header>
