@@ -10,7 +10,9 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "Apportionments")
+// O nome vai em minusculo para bater com o schema: no MySQL em Linux
+// (lower_case_table_names=0) "Apportionments" nao encontraria a tabela.
+@Table(name = "apportionments")
 @Getter
 @Setter
 @NoArgsConstructor

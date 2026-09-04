@@ -1,24 +1,36 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.financial.dto;
 
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Lancamento de uma nota fiscal.
+ *
+ * <p>{@code items} so e exigido quando o destino do custo e APPORTIONED. Com
+ * ENTERPRISE o custo vai integral para o CNPJ do contrato e a lista tem de vir
+ * vazia -- a validacao esta no service, porque depende do valor de outro campo.
+ */
 public record InvoiceRequestDTO(
         @NotNull(message = "O contrato é obrigatório.")
         UUID contractId,
 
-        @NotNull(message = "O número da fatura é obrigatório.")
-        @Positive(message = "O número da fatura deve ser positivo.")
-        Integer number,
+        @NotBlank(message = "O número da nota é obrigatório.")
+        @Size(max = 40, message = "O número da nota deve ter no máximo 40 caracteres.")
+        String number,
+
+        /** Mês de referência. Qualquer dia do mês serve; é normalizado para o dia 1. */
+        @NotNull(message = "A competência é obrigatória.")
+        LocalDate competence,
 
         @NotNull(message = "O valor total é obrigatório.")
         @DecimalMin(value = "0.01", message = "O valor total deve ser maior que zero.")
@@ -31,7 +43,9 @@ public record InvoiceRequestDTO(
         @NotNull(message = "A data de vencimento é obrigatória.")
         LocalDate dueDate,
 
-        @NotEmpty(message = "Informe ao menos um setor no rateio.")
+        @NotNull(message = "Informe o destino do custo: rateio por centro de custo ou CNPJ.")
+        CostAllocationType costAllocation,
+
         @Valid
         List<ApportionmentItemDTO> items
 ) {

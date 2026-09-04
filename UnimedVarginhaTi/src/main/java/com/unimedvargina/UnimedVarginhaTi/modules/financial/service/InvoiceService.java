@@ -4,6 +4,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceApportion
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
@@ -45,19 +46,30 @@ public class InvoiceService {
     public Invoice createInvoiceWithApportionment(InvoiceRequestDTO dto) {
         Contract contract = contractService.findById(dto.contractId());
 
+        LocalDate competence = YearMonth.from(dto.competence()).atDay(1);
+
         validateDates(dto);
-        validateApportionmentTotal(dto);
+        validateCostDestination(dto);
         validateNoDuplicatedSector(dto);
+        validateNotDuplicated(contract.getId(), competence);
 
         Invoice invoice = new Invoice();
         invoice.setContract(contract);
-        invoice.setNumber(dto.number());
+        invoice.setNumber(dto.number().trim());
+        invoice.setCompetence(competence);
         invoice.setAmount(dto.totalAmount());
         invoice.setIssueDate(dto.issueDate());
         invoice.setDueDate(dto.dueDate());
         invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setCostAllocation(dto.costAllocation());
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
+
+        // Custo integral do CNPJ: nao ha itens de rateio a gravar. O dono do custo
+        // e a empresa do contrato.
+        if (dto.costAllocation() == CostAllocationType.ENTERPRISE) {
+            return savedInvoice;
+        }
 
         List<Apportionment> apportionments = dto.items().stream()
                 .map(item -> {
@@ -76,11 +88,42 @@ public class InvoiceService {
     }
 
     /**
-     * Garante que a soma do rateio feche exatamente com o valor da fatura.
+     * Toda nota tem destino de custo, e o destino define o que é exigido.
      *
-     * <p>Esta é a regra que a planilha não conseguia impor: sem ela o total rateado
-     * pelos centros de custo pode divergir do que foi efetivamente faturado.
+     * <p>Com rateio, a soma dos itens tem de fechar exatamente com o valor da nota
+     * — regra que a planilha não conseguia impor. Sem rateio, o custo é integral da
+     * empresa do contrato, e itens de rateio ali seriam contradição: o mesmo valor
+     * apareceria como custo do CNPJ e como custo dos centros.
      */
+    private void validateCostDestination(InvoiceRequestDTO dto) {
+        boolean hasItems = dto.items() != null && !dto.items().isEmpty();
+
+        if (dto.costAllocation() == CostAllocationType.ENTERPRISE) {
+            if (hasItems) {
+                throw new BusinessRuleException(
+                        "A nota foi marcada como custo integral do CNPJ, então não pode ter rateio por centro de custo.");
+            }
+            return;
+        }
+
+        if (!hasItems) {
+            throw new BusinessRuleException(
+                    "Informe o rateio por centro de custo, ou marque a nota como custo integral do CNPJ.");
+        }
+
+        validateApportionmentTotal(dto);
+    }
+
+    /** Um contrato gera uma nota por mês: a segunda no mesmo mês é lançamento repetido. */
+    private void validateNotDuplicated(UUID contractId, LocalDate competence) {
+        invoiceRepository.findByContractIdAndCompetence(contractId, competence)
+                .ifPresent(existing -> {
+                    throw new BusinessRuleException(
+                            "Já existe a nota %s lançada para este contrato na competência %s."
+                                    .formatted(existing.getNumber(), YearMonth.from(competence)));
+                });
+    }
+
     private void validateApportionmentTotal(InvoiceRequestDTO dto) {
         BigDecimal allocated = dto.items().stream()
                 .map(InvoiceRequestDTO.ApportionmentItemDTO::allocation)
@@ -97,6 +140,9 @@ public class InvoiceService {
     }
 
     private void validateNoDuplicatedSector(InvoiceRequestDTO dto) {
+        if (dto.items() == null) {
+            return;
+        }
         Set<UUID> sectors = new HashSet<>();
         dto.items().stream()
                 .map(InvoiceRequestDTO.ApportionmentItemDTO::sectorId)
@@ -163,11 +209,9 @@ public class InvoiceService {
             UUID contractId,
             LocalDate referenceDate
     ) {
-        YearMonth previousMonth = YearMonth.from(referenceDate).minusMonths(1);
-        LocalDate startDate = previousMonth.atDay(1);
-        LocalDate endDate = previousMonth.atEndOfMonth();
+        LocalDate previousCompetence = YearMonth.from(referenceDate).minusMonths(1).atDay(1);
 
-        return invoiceRepository.findByContractIdAndMonthRange(contractId, startDate, endDate)
+        return invoiceRepository.findByContractIdAndCompetence(contractId, previousCompetence)
                 .map(invoice -> {
                     BigDecimal totalAmount = invoice.getAmount();
 

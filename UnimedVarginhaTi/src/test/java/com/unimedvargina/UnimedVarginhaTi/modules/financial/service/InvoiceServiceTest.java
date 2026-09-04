@@ -3,6 +3,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.financial.service;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.ApportionmentRepository;
@@ -57,6 +58,7 @@ class InvoiceServiceTest {
     private static final UUID CONTRACT_ID = UUID.randomUUID();
     private static final UUID SECTOR_A = UUID.randomUUID();
     private static final UUID SECTOR_B = UUID.randomUUID();
+    private static final LocalDate COMPETENCE = LocalDate.of(2026, 3, 1);
 
     @Test
     @DisplayName("grava a fatura quando a soma do rateio fecha com o valor total")
@@ -158,9 +160,10 @@ class InvoiceServiceTest {
         when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
 
         InvoiceRequestDTO request = new InvoiceRequestDTO(
-                CONTRACT_ID, 1, new BigDecimal("100.00"),
+                CONTRACT_ID, "2026/1", COMPETENCE, new BigDecimal("100.00"),
                 LocalDate.of(2026, 3, 10),
                 LocalDate.of(2026, 3, 5),
+                CostAllocationType.APPORTIONED,
                 List.of(item(SECTOR_A, "100.00")));
 
         assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
@@ -187,12 +190,128 @@ class InvoiceServiceTest {
         verify(apportionmentRepository, never()).saveAll(any());
     }
 
+
+    @Test
+    @DisplayName("custo integral do CNPJ nao grava rateio")
+    void enterpriseCostSkipsApportionment() {
+        when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(call -> call.getArgument(0));
+
+        InvoiceRequestDTO request = new InvoiceRequestDTO(
+                CONTRACT_ID, "2026/1141", COMPETENCE, new BigDecimal("2241.69"),
+                LocalDate.of(2026, 2, 28),
+                LocalDate.of(2026, 3, 15),
+                CostAllocationType.ENTERPRISE,
+                List.of());
+
+        Invoice saved = invoiceService.createInvoiceWithApportionment(request);
+
+        assertThat(saved.getCostAllocation()).isEqualTo(CostAllocationType.ENTERPRISE);
+        verify(apportionmentRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("custo do CNPJ com itens de rateio e contradicao: rejeita")
+    void rejectsEnterpriseCostWithApportionmentItems() {
+        when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
+
+        InvoiceRequestDTO request = new InvoiceRequestDTO(
+                CONTRACT_ID, "2026/2", COMPETENCE, new BigDecimal("100.00"),
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31),
+                CostAllocationType.ENTERPRISE,
+                List.of(item(SECTOR_A, "100.00")));
+
+        assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("custo integral do CNPJ");
+
+        verify(invoiceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("rateio sem itens nao define destino do custo: rejeita")
+    void rejectsApportionedWithoutItems() {
+        when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
+
+        InvoiceRequestDTO request = new InvoiceRequestDTO(
+                CONTRACT_ID, "2026/3", COMPETENCE, new BigDecimal("100.00"),
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31),
+                CostAllocationType.APPORTIONED,
+                List.of());
+
+        assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("custo integral do CNPJ");
+
+        verify(invoiceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("um contrato so tem uma nota por competencia")
+    void rejectsSecondInvoiceInSameCompetence() {
+        Contract contract = new Contract();
+        contract.setId(CONTRACT_ID);
+        when(contractService.findById(CONTRACT_ID)).thenReturn(contract);
+
+        Invoice existing = new Invoice();
+        existing.setNumber("2026/1141");
+        when(invoiceRepository.findByContractIdAndCompetence(CONTRACT_ID, COMPETENCE))
+                .thenReturn(Optional.of(existing));
+
+        InvoiceRequestDTO request = request(new BigDecimal("100.00"), item(SECTOR_A, "100.00"));
+
+        assertThatThrownBy(() -> invoiceService.createInvoiceWithApportionment(request))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("2026/1141")
+                .hasMessageContaining("2026-03");
+
+        verify(invoiceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("competencia e normalizada para o dia 1 do mes")
+    void normalizesCompetenceToFirstDayOfMonth() {
+        when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(call -> call.getArgument(0));
+
+        InvoiceRequestDTO request = new InvoiceRequestDTO(
+                CONTRACT_ID, "2026/4", LocalDate.of(2026, 3, 27), new BigDecimal("100.00"),
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31),
+                CostAllocationType.ENTERPRISE,
+                List.of());
+
+        Invoice saved = invoiceService.createInvoiceWithApportionment(request);
+
+        assertThat(saved.getCompetence()).isEqualTo(LocalDate.of(2026, 3, 1));
+    }
+
+    @Test
+    @DisplayName("aceita numero de nota com barra, como 2023/1141")
+    void acceptsCompositeInvoiceNumber() {
+        when(contractService.findById(CONTRACT_ID)).thenReturn(new Contract());
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(call -> call.getArgument(0));
+
+        InvoiceRequestDTO request = new InvoiceRequestDTO(
+                CONTRACT_ID, " 2023/1141 ", COMPETENCE, new BigDecimal("100.00"),
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31),
+                CostAllocationType.ENTERPRISE,
+                List.of());
+
+        assertThat(invoiceService.createInvoiceWithApportionment(request).getNumber())
+                .isEqualTo("2023/1141");
+    }
+
     private static InvoiceRequestDTO request(BigDecimal total,
                                              InvoiceRequestDTO.ApportionmentItemDTO... items) {
         return new InvoiceRequestDTO(
-                CONTRACT_ID, 1, total,
+                CONTRACT_ID, "2026/1", COMPETENCE, total,
                 LocalDate.of(2026, 3, 1),
                 LocalDate.of(2026, 3, 31),
+                CostAllocationType.APPORTIONED,
                 List.of(items));
     }
 
