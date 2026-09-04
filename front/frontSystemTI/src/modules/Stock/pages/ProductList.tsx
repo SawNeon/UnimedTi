@@ -8,9 +8,14 @@ interface ProductListProps {
     onEdit: (product: ProductDTO) => void;
     /** Estoque que está sendo visto. Trocar de unidade recarrega a lista. */
     unitId: string;
+    /**
+     * Excluir tira o produto do catálogo, logo dos DOIS estoques — por isso exige
+     * operar em todas as unidades. Sem isso o botão apareceria só para dar 403.
+     */
+    canDelete: boolean;
 }
 
-export function ProductList({ onEdit, unitId }: ProductListProps) {
+export function ProductList({ onEdit, unitId, canDelete }: ProductListProps) {
     const [products, setProducts] = useState<ProductDTO[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(true);
@@ -131,13 +136,15 @@ export function ProductList({ onEdit, unitId }: ProductListProps) {
                                                 <PencilSimple size={20} />
                                             </button>
 
-                                            <button
-                                                className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                                                onClick={() => product.id && handleDelete(product.id)}
-                                                title="Excluir"
-                                            >
-                                                <Trash size={20} />
-                                            </button>
+                                            {canDelete && (
+                                                <button
+                                                    className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                                                    onClick={() => product.id && handleDelete(product.id)}
+                                                    title="Excluir"
+                                                >
+                                                    <Trash size={20} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

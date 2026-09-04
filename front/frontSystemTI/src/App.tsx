@@ -25,18 +25,53 @@ import {
   House,
   SignOut,
   ShoppingCart,
-  InvoiceIcon
+  InvoiceIcon,
+  UsersThree
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
 import { AUTH_REQUIRED_EVENT, AUTH_TOKEN_KEY } from './shared/services/authSession';
-import { UnitService } from './shared/services/unitService';
 import { getSelectedUnitId, setSelectedUnitId } from './shared/services/unitSession';
-import type { OperationalUnitDTO } from './shared/types/OperationalUnit';
+import { MeService } from './shared/services/meService';
+import { accessibleUnits, canOperate, canOperateAllUnits, canSee } from './shared/types/Access';
+import type { MeDTO, ModuleKey, UnitAccess, UserDTO } from './shared/types/Access';
+import { UserList } from './modules/Users/pages/UserList';
+import { UserForm } from './modules/Users/pages/UserForm';
 import { Login } from './modules/Auth/pages/Login';
 
-type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial';
+type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'users';
+
+/** Cada modulo de tela corresponde a um modulo de permissao do backend. */
+const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
+  stock: 'STOCK',
+  asset: 'ASSET',
+  order: 'ORDER',
+  financial: 'FINANCIAL',
+  users: 'USER_MANAGEMENT'
+};
 type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters' | 'transfer';
+
+type SidebarModule = Exclude<ActiveModule, 'welcome'>;
+
+const SIDEBAR_MODULES: {
+  module: SidebarModule;
+  label: string;
+  icon: typeof Package;
+}[] = [
+  { module: 'stock', label: 'Estoque', icon: Package },
+  { module: 'asset', label: 'Ativos', icon: Desktop },
+  { module: 'order', label: 'Pedidos', icon: ShoppingCart },
+  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon },
+  { module: 'users', label: 'Usuários', icon: UsersThree }
+];
+
+const QUICK_CARD_HINT: Record<SidebarModule, string> = {
+  stock: 'Produtos e movimentações',
+  asset: 'Patrimônio e empréstimos',
+  order: 'Solicitações de compra',
+  financial: 'Contratos e notas',
+  users: 'Acessos e perfis'
+};
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -49,8 +84,13 @@ function App() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
 
   // Unidade operacional: Operadora ou Hospital. Define QUAL estoque está em tela.
-  const [units, setUnits] = useState<OperationalUnitDTO[]>([]);
+  const [units, setUnits] = useState<UnitAccess[]>([]);
   const [activeUnitId, setActiveUnitId] = useState<string>('');
+
+  // Perfil e alcance do usuário logado. É daqui que sai o menu — mas quem recusa
+  // a operação é o @PreAuthorize no backend, não esta tela.
+  const [me, setMe] = useState<MeDTO | null>(null);
+  const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
 
   useEffect(() => {
     const sendToLogin = () => {
@@ -80,27 +120,32 @@ function App() {
     };
   }, []);
 
-  // As unidades vêm do backend (seed da migration), não são fixas aqui. A escolha
-  // anterior é restaurada; se ela não existir mais, cai na primeira da lista.
+  // O alcance vem do backend em /users/me: o menu mostra só o que a pessoa
+  // realmente acessa, e o seletor só as unidades que ela opera.
   useEffect(() => {
     if (!isAuthenticated) return;
 
     let cancelled = false;
 
-    UnitService.getAll()
+    MeService.get()
       .then((data) => {
         if (cancelled) return;
-        setUnits(data);
+        setMe(data);
+
+        const allowed = accessibleUnits(data, 'STOCK');
+        setUnits(allowed);
 
         const stored = getSelectedUnitId();
-        const valid = data.find(u => u.id === stored) ?? data[0];
+        const valid = allowed.find(u => u.unitId === stored) ?? allowed[0];
         if (valid) {
-          setActiveUnitId(valid.id);
-          setSelectedUnitId(valid.id);
+          setActiveUnitId(valid.unitId);
+          setSelectedUnitId(valid.unitId);
+        } else {
+          setActiveUnitId('');
         }
       })
       .catch((error) => {
-        console.error('Erro ao carregar unidades operacionais:', error);
+        console.error('Erro ao carregar o perfil do usuário:', error);
       });
 
     return () => { cancelled = true; };
@@ -115,7 +160,7 @@ function App() {
     setEditingItem(null);
   };
 
-  const activeUnitName = units.find(u => u.id === activeUnitId)?.name ?? '';
+  const activeUnitName = units.find(u => u.unitId === activeUnitId)?.unitName ?? '';
 
   const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
@@ -159,6 +204,7 @@ function App() {
     if (activeModule === 'stock') return 'Gestão de estoque';
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
+    if (activeModule === 'users') return 'Gestão de usuários';
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Centros de custo';
     }
@@ -175,6 +221,9 @@ function App() {
     }
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
+    if (activeModule === 'users') {
+      return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
+    }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Distribuição da nota por áreas e centros de custo.';
     }
@@ -196,29 +245,19 @@ function App() {
           </div>
 
           <div className="quick-grid" aria-label="Acesso rápido aos módulos">
-            <button className="quick-card" onClick={() => handleSelectModule('stock')}>
-              <Package size={28} weight="duotone" />
-              <strong>Estoque</strong>
-              <span>Produtos e movimentações</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('asset')}>
-              <Desktop size={28} weight="duotone" />
-              <strong>Ativos</strong>
-              <span>Patrimônio e empréstimos</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('order')}>
-              <ShoppingCart size={28} weight="duotone" />
-              <strong>Pedidos</strong>
-              <span>Solicitações de compra</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('financial')}>
-              <InvoiceIcon size={28} weight="duotone" />
-              <strong>Financeiro</strong>
-              <span>Contratos e notas</span>
-            </button>
+            {SIDEBAR_MODULES
+              .filter(item => canSee(me, MODULE_PERMISSION[item.module]))
+              .map(item => (
+                <button
+                  key={item.module}
+                  className="quick-card"
+                  onClick={() => handleSelectModule(item.module)}
+                >
+                  <item.icon size={28} weight="duotone" />
+                  <strong>{item.label}</strong>
+                  <span>{QUICK_CARD_HINT[item.module]}</span>
+                </button>
+              ))}
           </div>
         </section>
       );
@@ -262,7 +301,13 @@ function App() {
         );
       }
 
-      return <ProductList onEdit={handleEdit} unitId={activeUnitId} />;
+      return (
+        <ProductList
+          onEdit={handleEdit}
+          unitId={activeUnitId}
+          canDelete={canOperateAllUnits(me, 'STOCK')}
+        />
+      );
     }
 
     if (activeModule === 'asset') {
@@ -290,6 +335,25 @@ function App() {
       return <OrderList />;
     }
 
+    if (activeModule === 'users') {
+      if (activeScreen === 'form') {
+        return (
+          <UserForm
+            userToEdit={editingUser}
+            onSuccess={() => { setEditingUser(null); handleBackToList(); }}
+          />
+        );
+      }
+
+      return (
+        <UserList
+          onEdit={(user) => { setEditingUser(user); setActiveScreen('form'); }}
+          canOperate={canOperate(me, 'USER_MANAGEMENT')}
+          currentUserId={me?.id ?? null}
+        />
+      );
+    }
+
     if (activeModule === 'financial') {
       if (activeScreen === 'form') {
         return <ContractForm onSuccess={handleBackToList} />;
@@ -310,6 +374,28 @@ function App() {
   const renderModuleActions = () => {
     if (activeModule === 'welcome') {
       return null;
+    }
+
+    if (activeModule === 'users') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de usuários">
+          <button
+            className={`header-action ${activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => { setEditingUser(null); handleBackToList(); }}
+          >
+            Ver lista
+          </button>
+
+          {canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => { setEditingUser(null); setActiveScreen('form'); }}
+            >
+              + Novo usuário
+            </button>
+          )}
+        </nav>
+      );
     }
 
     if (activeModule === 'financial') {
@@ -400,33 +486,17 @@ function App() {
             <House size={20} /> Início
           </button>
 
-          <button
-            onClick={() => handleSelectModule('stock')}
-            className={getSidebarClassName('stock')}
-          >
-            <Package size={20} /> Estoque
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('asset')}
-            className={getSidebarClassName('asset')}
-          >
-            <Desktop size={20} /> Ativos
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('order')}
-            className={getSidebarClassName('order')}
-          >
-            <ShoppingCart size={20} /> Pedidos
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('financial')}
-            className={getSidebarClassName('financial')}
-          >
-            <InvoiceIcon size={20} /> Financeiro
-          </button>
+          {/* O menu mostra só o que a pessoa alcança. É conveniência de tela: o
+              backend recusaria a chamada de qualquer forma. */}
+          {SIDEBAR_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
+            <button
+              key={item.module}
+              onClick={() => handleSelectModule(item.module)}
+              className={getSidebarClassName(item.module)}
+            >
+              <item.icon size={20} /> {item.label}
+            </button>
+          ))}
         </nav>
 
         <button onClick={handleLogout} className="sidebar-button logout-button">
@@ -451,7 +521,7 @@ function App() {
                 onChange={(e) => handleChangeUnit(e.target.value)}
               >
                 {units.map(unit => (
-                  <option key={unit.id} value={unit.id}>{unit.name}</option>
+                  <option key={unit.unitId} value={unit.unitId}>{unit.unitName}</option>
                 ))}
               </select>
             </div>

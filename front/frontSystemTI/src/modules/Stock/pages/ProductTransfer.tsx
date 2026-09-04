@@ -1,15 +1,15 @@
 // src/modules/Stock/pages/ProductTransfer.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ProductService } from '../services/ProductService';
 import type { ProductDTO } from '../types/Product';
 import styles from './ProductMovement.module.css';
 import { ArrowsLeftRight, Package } from '@phosphor-icons/react';
-import type { OperationalUnitDTO } from '../../../shared/types/OperationalUnit';
+import type { UnitAccess } from '../../../shared/types/Access';
 
 interface ProductTransferProps {
   onSuccess: () => void;
-  units: OperationalUnitDTO[];
+  units: UnitAccess[];
   /** Unidade selecionada no cabeçalho — vira a origem sugerida. */
   currentUnitId: string;
 }
@@ -21,6 +21,15 @@ interface ProductTransferProps {
  * origem e entra no destino na mesma transação, e o total somado não muda.
  */
 export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTransferProps) {
+  // Transferir exige operar na origem E no destino. Oferecer uma unidade de
+  // somente leitura aqui só produziria um 403 do backend.
+  //
+  // Memoizado porque entra como dependência do efeito abaixo: um array novo a
+  // cada render faria o efeito disparar sem parar.
+  const operableUnits = useMemo(
+    () => units.filter(u => u.level === 'OPERATE'),
+    [units]
+  );
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [fromUnitId, setFromUnitId] = useState<string>(currentUnitId);
@@ -49,9 +58,9 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
 
   // Destino acompanha a origem: com duas unidades, escolher uma define a outra.
   useEffect(() => {
-    const other = units.find(u => u.id !== fromUnitId);
-    setToUnitId(prev => (prev && prev !== fromUnitId ? prev : other?.id ?? ''));
-  }, [fromUnitId, units]);
+    const other = operableUnits.find(u => u.unitId !== fromUnitId);
+    setToUnitId(prev => (prev && prev !== fromUnitId ? prev : other?.unitId ?? ''));
+  }, [fromUnitId, operableUnits]);
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
@@ -89,7 +98,7 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
     }
   };
 
-  const unitName = (id: string) => units.find(u => u.id === id)?.name ?? '';
+  const unitName = (id: string) => units.find(u => u.unitId === id)?.unitName ?? '';
 
   return (
     <div className={styles.pageContainer}>
@@ -110,8 +119,8 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
                 onChange={(e) => setFromUnitId(e.target.value)}
                 required
               >
-                {units.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                {operableUnits.map(u => (
+                  <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
                 ))}
               </select>
             </div>
@@ -124,8 +133,8 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
                 onChange={(e) => setToUnitId(e.target.value)}
                 required
               >
-                {units.filter(u => u.id !== fromUnitId).map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                {operableUnits.filter(u => u.unitId !== fromUnitId).map(u => (
+                  <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
                 ))}
               </select>
             </div>
