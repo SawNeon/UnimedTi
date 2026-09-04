@@ -104,7 +104,7 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <ArrowsLeftRight size={28} color="#3a7d71" weight="bold" />
+          <ArrowsLeftRight size={28} color="#146556" weight="bold" />
           <h2 className={styles.title} style={{ margin: 0 }}>Transferir entre Estoques</h2>
         </div>
 
@@ -217,7 +217,7 @@ export function ProductTransfer({ onSuccess, units, currentUnitId }: ProductTran
             <button
               type="submit"
               disabled={loading}
-              style={{ flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold' }}
+              style={{ flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold' }}
             >
               {loading ? 'Processando...' : 'Transferir'}
             </button>

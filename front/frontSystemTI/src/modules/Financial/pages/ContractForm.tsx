@@ -138,7 +138,7 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <PlusCircle size={28} color="#3a7d71" weight="bold" />
+          <PlusCircle size={28} color="#146556" weight="bold" />
           <h2 className={styles.title}>Novo Contrato</h2>
         </div>
 

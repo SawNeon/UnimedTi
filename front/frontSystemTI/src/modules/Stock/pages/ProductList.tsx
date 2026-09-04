@@ -132,6 +132,8 @@ export function ProductList({ onEdit, unitId, canDelete }: ProductListProps) {
                                             <button
                                                 className={`${styles.actionBtn} ${styles.editBtn}`}
                                                 onClick={() => onEdit(product)}
+                                                title="Editar"
+                                                aria-label={`Editar ${product.name}`}
                                             >
                                                 <PencilSimple size={20} />
                                             </button>
@@ -141,6 +143,7 @@ export function ProductList({ onEdit, unitId, canDelete }: ProductListProps) {
                                                     className={`${styles.actionBtn} ${styles.deleteBtn}`}
                                                     onClick={() => product.id && handleDelete(product.id)}
                                                     title="Excluir"
+                                                    aria-label={`Excluir ${product.name}`}
                                                 >
                                                     <Trash size={20} />
                                                 </button>

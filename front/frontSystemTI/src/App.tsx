@@ -53,15 +53,21 @@ type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters' | 'transfer';
 
 type SidebarModule = Exclude<ActiveModule, 'welcome'>;
 
-const SIDEBAR_MODULES: {
-  module: SidebarModule;
-  label: string;
-  icon: typeof Package;
-}[] = [
+type NavItem = { module: SidebarModule; label: string; icon: typeof Package };
+
+/** Módulos da rotina diária — ocupam o corpo do menu. */
+const OPERATION_MODULES: NavItem[] = [
   { module: 'stock', label: 'Estoque', icon: Package },
   { module: 'asset', label: 'Ativos', icon: Desktop },
   { module: 'order', label: 'Pedidos', icon: ShoppingCart },
-  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon },
+  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon }
+];
+
+/**
+ * Administração — fica no rodapé, junto do Sair. É função de manutenção, não de
+ * rotina: misturá-la aos módulos operacionais dá a ela um peso que não tem.
+ */
+const ADMIN_MODULES: NavItem[] = [
   { module: 'users', label: 'Usuários', icon: UsersThree }
 ];
 
@@ -245,7 +251,7 @@ function App() {
           </div>
 
           <div className="quick-grid" aria-label="Acesso rápido aos módulos">
-            {SIDEBAR_MODULES
+            {OPERATION_MODULES
               .filter(item => canSee(me, MODULE_PERMISSION[item.module]))
               .map(item => (
                 <button
@@ -488,7 +494,7 @@ function App() {
 
           {/* O menu mostra só o que a pessoa alcança. É conveniência de tela: o
               backend recusaria a chamada de qualquer forma. */}
-          {SIDEBAR_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
+          {OPERATION_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
             <button
               key={item.module}
               onClick={() => handleSelectModule(item.module)}
@@ -499,9 +505,21 @@ function App() {
           ))}
         </nav>
 
-        <button onClick={handleLogout} className="sidebar-button logout-button">
-          <SignOut size={20} /> Sair
-        </button>
+        <div className="sidebar-footer">
+          {ADMIN_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
+            <button
+              key={item.module}
+              onClick={() => handleSelectModule(item.module)}
+              className={getSidebarClassName(item.module)}
+            >
+              <item.icon size={20} /> {item.label}
+            </button>
+          ))}
+
+          <button onClick={handleLogout} className="sidebar-button logout-button">
+            <SignOut size={20} /> Sair
+          </button>
+        </div>
       </aside>
 
       <div className="main-area">

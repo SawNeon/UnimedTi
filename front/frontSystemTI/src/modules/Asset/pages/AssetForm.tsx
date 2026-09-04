@@ -59,7 +59,7 @@ function AssetFormFields({ assetToEdit, onSuccess }: AssetFormProps) {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.content}>
-          <PlusCircle size={28} color="#3a7d71" weight="bold" />
+          <PlusCircle size={28} color="#146556" weight="bold" />
           <h2 className={styles.title}>
             {assetToEdit ? 'Editar Ativo' : 'Novo Ativo'}
           </h2>
@@ -120,7 +120,7 @@ function AssetFormFields({ assetToEdit, onSuccess }: AssetFormProps) {
 
               <button
                 type="submit"
-                style={{ flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 {assetToEdit ? 'Salvar Alterações' : 'Cadastrar'}
               </button>

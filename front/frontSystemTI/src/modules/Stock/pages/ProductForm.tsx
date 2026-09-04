@@ -67,7 +67,7 @@ function ProductFormFields({ productToEdit, onSuccess, unitId, unitName }: Produ
     <div className={styles.pageContainer}>
       <div className={styles.card}>
          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <PlusCircle size={28} color="#3a7d71" weight="bold" />
+          <PlusCircle size={28} color="#146556" weight="bold" />
           <h2 className={styles.title}>
             {productToEdit ? 'Editar Produto' : 'Novo Produto'}
           </h2>
@@ -101,8 +101,8 @@ function ProductFormFields({ productToEdit, onSuccess, unitId, unitName }: Produ
             />
           
 
-          <div style={{gap: '20px' }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label className={styles.label}>Estoque Mínimo em {unitName}</label>
               <input
                 type="number"
@@ -113,7 +113,7 @@ function ProductFormFields({ productToEdit, onSuccess, unitId, unitName }: Produ
                 onChange={handleChange}
                 required
               />
-              <small style={{ color: '#666' }}>
+              <small style={{ color: '#666', display: 'block' }}>
                 O ponto de pedido é próprio de cada estoque. O saldo entra por
                 movimentação, não por aqui.
               </small>
@@ -131,7 +131,7 @@ function ProductFormFields({ productToEdit, onSuccess, unitId, unitName }: Produ
 
             <button
               type="submit"
-              style={{ flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               {productToEdit ? 'Salvar Alterações' : 'Cadastrar'}
             </button>

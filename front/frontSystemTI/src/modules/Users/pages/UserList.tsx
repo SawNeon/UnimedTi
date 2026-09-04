@@ -79,7 +79,7 @@ export function UserList({ onEdit, canOperate, currentUserId }: UserListProps) {
           <h2 className={styles.title}>Usuários</h2>
           <input
             type="text"
-            placeholder="Busca por nome, login ou e-mail..."
+            placeholder="Buscar usuário..."
             className={styles.searchInput}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,9 +116,15 @@ export function UserList({ onEdit, canOperate, currentUserId }: UserListProps) {
                         {(user.name || user.login).charAt(0).toUpperCase()}
                       </div>
                     </td>
-                    <td><strong>{user.name}</strong></td>
+                    <td>
+                      <strong className={styles.ellipsis} title={user.name}>{user.name}</strong>
+                    </td>
                     <td style={{ color: '#666' }}>{user.login}</td>
-                    <td style={{ color: '#666' }}>{user.email}</td>
+                    <td>
+                      <div className={styles.ellipsis} style={{ color: '#666' }} title={user.email}>
+                        {user.email}
+                      </div>
+                    </td>
                     <td>
                       {user.profileName
                         ? <span className={styles.profileTag}>{user.profileName}</span>
@@ -136,6 +142,7 @@ export function UserList({ onEdit, canOperate, currentUserId }: UserListProps) {
                             className={`${styles.actionBtn} ${styles.editBtn}`}
                             onClick={() => onEdit(user)}
                             title="Editar"
+                            aria-label={`Editar ${user.name}`}
                           >
                             <PencilSimple size={20} />
                           </button>
@@ -144,6 +151,7 @@ export function UserList({ onEdit, canOperate, currentUserId }: UserListProps) {
                             className={`${styles.actionBtn} ${styles.editBtn}`}
                             onClick={() => handleChangePassword(user)}
                             title="Definir nova senha"
+                            aria-label={`Definir nova senha de ${user.name}`}
                           >
                             <Key size={20} />
                           </button>
@@ -155,6 +163,7 @@ export function UserList({ onEdit, canOperate, currentUserId }: UserListProps) {
                               className={`${styles.actionBtn} ${user.active ? styles.deleteBtn : styles.editBtn}`}
                               onClick={() => handleToggleActive(user)}
                               title={user.active ? 'Desativar' : 'Reativar'}
+                              aria-label={`${user.active ? 'Desativar' : 'Reativar'} ${user.name}`}
                             >
                               {user.active ? <Prohibit size={20} /> : <CheckCircle size={20} />}
                             </button>

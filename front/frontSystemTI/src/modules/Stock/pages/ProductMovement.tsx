@@ -92,7 +92,7 @@ export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovement
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <ArrowsLeftRight size={28} color="#3a7d71" weight="bold" />
+          <ArrowsLeftRight size={28} color="#146556" weight="bold" />
           <h2 className={styles.title} style={{ margin: 0 }}>
             Movimentar Estoque — {unitName}
           </h2>
@@ -121,7 +121,7 @@ export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovement
                 </div>
              </div>
 
-             <div style={{gap: '20px'}}>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                  {/* Quantidade */}
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Quantidade</label>
@@ -140,7 +140,7 @@ export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovement
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label className={styles.label}>Tipo</label>
                     <div style={{display: 'flex', gap: '10px', height: '100%', alignItems: 'center'}}>
-                        <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'add' ? '#3a7d71' : '#555', fontWeight: movementType === 'add' ? 'bold' : 'normal'}}>
+                        <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'add' ? '#146556' : '#555', fontWeight: movementType === 'add' ? 'bold' : 'normal'}}>
                             <input
                                 className={styles.input}
                                 type="radio" 
@@ -167,7 +167,7 @@ export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovement
              </div>
 
              {/* Motivo, Responsável e Setor */}
-             <div style={{gap: '20px'}}>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label className={styles.label}>Motivo</label>
                     <input 
@@ -228,7 +228,7 @@ export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovement
                  <button 
                     type="submit" 
                     disabled={loading}
-                    style={{flex: 1, padding: '12px', backgroundColor: movementType === 'add' ? '#3a7d71' : '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
+                    style={{flex: 1, padding: '12px', backgroundColor: movementType === 'add' ? '#146556' : '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
                  >
                     {loading ? 'Processando...' : 'Confirmar'}
                  </button>

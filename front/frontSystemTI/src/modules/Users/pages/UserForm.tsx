@@ -52,7 +52,7 @@ export function UserForm({ userToEdit, onSuccess }: UserFormProps) {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <UserCircle size={28} color="#3a7d71" weight="bold" />
+          <UserCircle size={28} color="#146556" weight="bold" />
           <h2 className={styles.title}>{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</h2>
         </div>
 
@@ -142,7 +142,7 @@ export function UserForm({ userToEdit, onSuccess }: UserFormProps) {
             <button
               type="submit"
               disabled={saving}
-              style={{ flex: 1, padding: '12px', backgroundColor: '#3a7d71', color: 'white', border: 'none', borderRadius: '4px', cursor: saving ? 'wait' : 'pointer', fontWeight: 'bold' }}
+              style={{ flex: 1, padding: '12px', backgroundColor: '#146556', color: 'white', border: 'none', borderRadius: '4px', cursor: saving ? 'wait' : 'pointer', fontWeight: 'bold' }}
             >
               {saving ? 'Salvando...' : (isEdit ? 'Salvar Alterações' : 'Cadastrar')}
             </button>
