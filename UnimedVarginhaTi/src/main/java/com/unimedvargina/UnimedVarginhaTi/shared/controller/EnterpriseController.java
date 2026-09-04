@@ -8,6 +8,7 @@ import com.unimedvargina.UnimedVarginhaTi.shared.service.EnterpriseService;
 import com.unimedvargina.UnimedVarginhaTi.shared.service.SectorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +21,12 @@ public class EnterpriseController {
     @Autowired
     private EnterpriseService serviceEnterprise;
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public Iterable<Enterprise> findAll() { return serviceEnterprise.findAll(); }
 
 
+    @PreAuthorize("@access.canOperate('USER_MANAGEMENT')")
     @PostMapping
     public Enterprise save(@RequestBody Enterprise enterprise) { return serviceEnterprise.save(enterprise); }
 }

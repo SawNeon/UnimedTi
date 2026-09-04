@@ -6,9 +6,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,8 +19,16 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Aqui ficam apenas as regras de "quem pode chegar": publico ou autenticado.
+ *
+ * <p>Quem pode fazer O QUE e decidido pelos {@code @PreAuthorize} nos controllers,
+ * sobre o bean {@link AccessGuard}. Duplicar as regras por path aqui criaria uma
+ * segunda fonte de verdade que sairia do ar com a primeira mudanca de rota.
+ */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     @Autowired
     private SecurityFilter securityFilter;
@@ -29,8 +37,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
 
+                // Uma chamada so: a segunda, com Customizer.withDefaults(),
+                // sobrescrevia a configuracao explicita da linha anterior.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception
@@ -44,7 +53,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/confirm").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
+                        // O cadastro de usuario saiu daqui para /api/users, protegido
+                        // por USER_MANAGEMENT no proprio controller.
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
