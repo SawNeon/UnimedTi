@@ -86,4 +86,14 @@ public class Invoice extends BaseEntity {
     /** Quando foi efetivamente entregue. Nulo enquanto nao saiu do TI. */
     private LocalDate deliveredAt;
 
+    /**
+     * Caminho do arquivo da nota, relativo a pasta de uploads.
+     *
+     * <p>A nota chega em PDF por e-mail e precisa ser reencontrada depois -- na
+     * planilha ela ficava so na caixa de entrada de quem recebeu. Nulo enquanto
+     * ninguem anexou.
+     */
+    @Column(name = "attachment_path")
+    private String attachmentPath;
+
 }

@@ -7,9 +7,11 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -53,5 +55,14 @@ public class InvoiceController {
             @PathVariable UUID id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveredAt) {
         return ResponseEntity.ok(invoiceService.markAsDelivered(id, deliveredAt));
+    }
+
+    /** Anexa o PDF da nota que chegou por e-mail. Reenviar substitui o anterior. */
+    @PreAuthorize("@access.canOperate('FINANCIAL')")
+    @PostMapping(value = "/{id}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InvoiceResponseDTO> attachFile(
+            @PathVariable UUID id,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(invoiceService.attachFile(id, file));
     }
 }

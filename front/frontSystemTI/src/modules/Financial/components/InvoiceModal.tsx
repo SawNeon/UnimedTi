@@ -35,6 +35,7 @@ interface InvoiceViewResponse {
     contractId: string;
     number: string;
     totalAmount: number;
+    attachmentPath?: string | null;
     issueDate: string;
     dueDate: string;
     status: string;
@@ -74,6 +75,10 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
     const [costAllocation, setCostAllocation] =
         useState<'APPORTIONED' | 'ENTERPRISE'>('APPORTIONED');
     const [submitError, setSubmitError] = useState<string | null>(null);
+    // A nota chega em PDF por e-mail; anexar no lançamento evita que o arquivo
+    // fique só na caixa de entrada de quem recebeu.
+    const [file, setFile] = useState<File | null>(null);
+    const [attachmentPath, setAttachmentPath] = useState<string | null>(null);
 
     const [allSectors, setAllSectors] = useState<SectorFromDB[]>([]);
     const [selectedSectorId, setSelectedSectorId] = useState<string>("");
@@ -177,6 +182,7 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                     const invoice = response.data;
 
                     setNumber(invoice.number);
+                    setAttachmentPath(invoice.attachmentPath ?? null);
                     setTotalAmount(Number(invoice.totalAmount));
                     setIssueDate(invoice.issueDate);
                     setDueDate(invoice.dueDate);
@@ -293,6 +299,23 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
         balanceSectors(totalAmount, updated);
     };
 
+    /**
+     * Baixa pela instância `api`, que injeta o token, e abre como blob. Um link
+     * direto não carregaria o Authorization e receberia 401.
+     */
+    const handleOpenAttachment = async () => {
+        if (!attachmentPath) return;
+
+        try {
+            const resposta = await api.get(`/files/view?path=${encodeURIComponent(attachmentPath)}`, {
+                responseType: 'blob'
+            });
+            window.open(URL.createObjectURL(resposta.data as Blob), '_blank');
+        } catch {
+            setSubmitError('Não foi possível abrir o arquivo da nota.');
+        }
+    };
+
     const handleReloadTemplate = () => {
         loadPreviousTemplate(getTemplateReferenceDate(), totalAmount);
     };
@@ -345,7 +368,13 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
         };
 
         try {
-            await api.post('/invoices', payload);
+            const criada = await api.post<{ id: string }>('/invoices', payload);
+
+            if (file && criada.data?.id) {
+                const form = new FormData();
+                form.append('file', file);
+                await api.post(`/invoices/${criada.data.id}/attachment`, form);
+            }
 
             if (onSuccess) onSuccess();
             onClose();
@@ -412,6 +441,38 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                                     ? 'A soma do rateio precisa fechar exatamente com o valor da nota.'
                                     : `Todo o valor fica com ${contract.enterpriseName}, sem divisão por setor.`}
                             </small>
+                        </div>
+                    </div>
+
+                    <div className={styles.row}>
+                        <div style={{ flex: 1 }}>
+                            <label className={styles.label}>Arquivo da nota</label>
+                            {isView ? (
+                                attachmentPath ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenAttachment}
+                                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                                                 color: '#146556', fontWeight: 700, textDecoration: 'underline' }}
+                                    >
+                                        Abrir arquivo da nota
+                                    </button>
+                                ) : (
+                                    <p style={{ color: '#666' }}>Nenhum arquivo anexado.</p>
+                                )
+                            ) : (
+                                <>
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg"
+                                        className={styles.input}
+                                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                    />
+                                    <small style={{ color: '#666' }}>
+                                        Opcional. PDF, PNG ou JPG — o arquivo que chegou por e-mail.
+                                    </small>
+                                </>
+                            )}
                         </div>
                     </div>
 

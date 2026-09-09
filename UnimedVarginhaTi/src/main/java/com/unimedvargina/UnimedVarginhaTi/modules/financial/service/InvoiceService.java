@@ -13,10 +13,12 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.Apportion
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.InvoiceRepository;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
+import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
 import com.unimedvargina.UnimedVarginhaTi.shared.service.SectorService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -45,6 +47,16 @@ public class InvoiceService {
 
     @Autowired
     private InvoiceDeliveryScheduler deliveryScheduler;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    /**
+     * A nota chega digitalizada ou em PDF. Restringir os tipos evita que o anexo
+     * vire deposito de qualquer arquivo -- e um .exe ali nao seria a nota fiscal.
+     */
+    private static final java.util.Set<String> EXTENSOES_ACEITAS =
+            java.util.Set.of("pdf", "png", "jpg", "jpeg");
 
     @Transactional
     public Invoice createInvoiceWithApportionment(InvoiceRequestDTO dto) {
@@ -195,6 +207,34 @@ public class InvoiceService {
         return findByIdWithApportionments(id);
     }
 
+    /**
+     * Anexa o arquivo da nota. Reenviar substitui o anterior: e o caso normal de
+     * quem anexou a nota errada ou recebeu uma versao corrigida do fornecedor.
+     */
+    @Transactional
+    public InvoiceResponseDTO attachFile(UUID id, MultipartFile file) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fatura", id));
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessRuleException("Selecione o arquivo da nota.");
+        }
+
+        String nome = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+        int ponto = nome.lastIndexOf('.');
+        String extensao = ponto < 0 ? "" : nome.substring(ponto + 1).toLowerCase();
+
+        if (!EXTENSOES_ACEITAS.contains(extensao)) {
+            throw new BusinessRuleException(
+                    "Formato não aceito para a nota. Envie PDF, PNG ou JPG.");
+        }
+
+        invoice.setAttachmentPath(fileStorageService.storeFile(file, "invoices"));
+        invoiceRepository.save(invoice);
+
+        return findByIdWithApportionments(id);
+    }
+
     public InvoiceResponseDTO findByIdWithApportionments(UUID id) {
 
         Invoice invoice = invoiceRepository.findById(id)
@@ -235,6 +275,7 @@ public class InvoiceService {
                 invoice.getStatus(),
                 invoice.getContract().getServiceDescription(),
                 invoice.getContract().getServiceType(),
+                invoice.getAttachmentPath(),
                 items
         );
     }

@@ -17,6 +17,8 @@ public record InvoiceResponseDTO(
         InvoiceStatus status,
         String serviceDescription,
         String serviceType,
+        /** Caminho do arquivo da nota; nulo quando ninguem anexou. */
+        String attachmentPath,
         List<ApportionmentItemResponseDTO> items
 ) {
     public record ApportionmentItemResponseDTO(
