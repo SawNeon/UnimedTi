@@ -26,7 +26,8 @@ import {
   SignOut,
   ShoppingCart,
   InvoiceIcon,
-  UsersThree
+  UsersThree,
+  Buildings
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
@@ -37,9 +38,14 @@ import { accessibleUnits, canOperate, canOperateAllUnits, canSee } from './share
 import type { MeDTO, ModuleKey, UnitAccess, UserDTO } from './shared/types/Access';
 import { UserList } from './modules/Users/pages/UserList';
 import { UserForm } from './modules/Users/pages/UserForm';
+import { EnterpriseList } from './modules/Registry/pages/EnterpriseList';
+import { EnterpriseForm } from './modules/Registry/pages/EnterpriseForm';
+import { SectorList } from './modules/Registry/pages/SectorList';
+import { SectorForm } from './modules/Registry/pages/SectorForm';
+import type { EnterpriseDTO, SectorDTO } from './shared/types/Registry';
 import { Login } from './modules/Auth/pages/Login';
 
-type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'users';
+type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'users' | 'registry';
 
 /** Cada modulo de tela corresponde a um modulo de permissao do backend. */
 const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
@@ -47,7 +53,10 @@ const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
   asset: 'ASSET',
   order: 'ORDER',
   financial: 'FINANCIAL',
-  users: 'USER_MANAGEMENT'
+  users: 'USER_MANAGEMENT',
+  // Empresas e setores sao configuracao do sistema, entao seguem a mesma
+  // permissao da gestao de usuarios.
+  registry: 'USER_MANAGEMENT'
 };
 type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters' | 'transfer';
 
@@ -68,6 +77,7 @@ const OPERATION_MODULES: NavItem[] = [
  * rotina: misturá-la aos módulos operacionais dá a ela um peso que não tem.
  */
 const ADMIN_MODULES: NavItem[] = [
+  { module: 'registry', label: 'Cadastros', icon: Buildings },
   { module: 'users', label: 'Usuários', icon: UsersThree }
 ];
 
@@ -76,7 +86,8 @@ const QUICK_CARD_HINT: Record<SidebarModule, string> = {
   asset: 'Patrimônio e empréstimos',
   order: 'Solicitações de compra',
   financial: 'Contratos e notas',
-  users: 'Acessos e perfis'
+  users: 'Acessos e perfis',
+  registry: 'Empresas e setores'
 };
 
 function App() {
@@ -97,6 +108,13 @@ function App() {
   // a operação é o @PreAuthorize no backend, não esta tela.
   const [me, setMe] = useState<MeDTO | null>(null);
   const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
+
+  // Cadastros: empresas e setores dividem a mesma tela, alternadas pela aba.
+  const [registryTab, setRegistryTab] = useState<'enterprises' | 'sectors'>('enterprises');
+  const [editingEnterprise, setEditingEnterprise] = useState<EnterpriseDTO | null>(null);
+  const [editingSector, setEditingSector] = useState<SectorDTO | null>(null);
+  // Salvar uma empresa muda o nome exibido na lista de setores.
+  const [registryReloadToken, setRegistryReloadToken] = useState(0);
 
   useEffect(() => {
     const sendToLogin = () => {
@@ -173,6 +191,24 @@ function App() {
     setActiveScreen('list');
     setEditingItem(null);
     setSelectedInvoiceId(null);
+    setEditingUser(null);
+    setEditingEnterprise(null);
+    setEditingSector(null);
+  };
+
+  /** Trocar de aba fecha o formulário: ele pertencia à outra entidade. */
+  const handleRegistryTab = (tab: 'enterprises' | 'sectors') => {
+    setRegistryTab(tab);
+    setActiveScreen('list');
+    setEditingEnterprise(null);
+    setEditingSector(null);
+  };
+
+  const handleRegistrySaved = () => {
+    setEditingEnterprise(null);
+    setEditingSector(null);
+    setRegistryReloadToken(token => token + 1);
+    setActiveScreen('list');
   };
 
   const handleEdit = (item: ProductDTO | AssetDTO) => {
@@ -211,6 +247,9 @@ function App() {
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
     if (activeModule === 'users') return 'Gestão de usuários';
+    if (activeModule === 'registry') {
+      return registryTab === 'enterprises' ? 'Empresas' : 'Setores';
+    }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Centros de custo';
     }
@@ -229,6 +268,11 @@ function App() {
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
     if (activeModule === 'users') {
       return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
+    }
+    if (activeModule === 'registry') {
+      return registryTab === 'enterprises'
+        ? 'Os CNPJs do grupo. Contrato e nota fiscal pertencem a um deles.'
+        : 'Os centros de custo usados no rateio e no destino do consumo.';
     }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Distribuição da nota por áreas e centros de custo.';
@@ -341,6 +385,32 @@ function App() {
       return <OrderList />;
     }
 
+    if (activeModule === 'registry') {
+      const podeOperar = canOperate(me, 'USER_MANAGEMENT');
+
+      if (activeScreen === 'form') {
+        return registryTab === 'enterprises'
+          ? <EnterpriseForm enterpriseToEdit={editingEnterprise} onSuccess={handleRegistrySaved} />
+          : <SectorForm sectorToEdit={editingSector} onSuccess={handleRegistrySaved} />;
+      }
+
+      return registryTab === 'enterprises'
+        ? (
+          <EnterpriseList
+            onEdit={(enterprise) => { setEditingEnterprise(enterprise); setActiveScreen('form'); }}
+            canOperate={podeOperar}
+            onChanged={() => setRegistryReloadToken(token => token + 1)}
+          />
+        )
+        : (
+          <SectorList
+            onEdit={(sector) => { setEditingSector(sector); setActiveScreen('form'); }}
+            canOperate={podeOperar}
+            reloadToken={registryReloadToken}
+          />
+        );
+    }
+
     if (activeModule === 'users') {
       if (activeScreen === 'form') {
         return (
@@ -380,6 +450,39 @@ function App() {
   const renderModuleActions = () => {
     if (activeModule === 'welcome') {
       return null;
+    }
+
+    if (activeModule === 'registry') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de cadastros">
+          <button
+            className={`header-action ${registryTab === 'enterprises' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleRegistryTab('enterprises')}
+          >
+            Empresas
+          </button>
+
+          <button
+            className={`header-action ${registryTab === 'sectors' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleRegistryTab('sectors')}
+          >
+            Setores
+          </button>
+
+          {canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => {
+                setEditingEnterprise(null);
+                setEditingSector(null);
+                setActiveScreen('form');
+              }}
+            >
+              {registryTab === 'enterprises' ? '+ Nova empresa' : '+ Novo setor'}
+            </button>
+          )}
+        </nav>
+      );
     }
 
     if (activeModule === 'users') {

@@ -24,19 +24,29 @@ import java.util.UUID;
 @Component
 public class ReferenceGuard {
 
-    /** tabela -> como o operador chama aquilo. */
-    private static final Map<String, String> SECTOR_REFERENCES = new LinkedHashMap<>();
-    private static final Map<String, String> ENTERPRISE_REFERENCES = new LinkedHashMap<>();
+    /** Como o operador chama aquilo, no singular e no plural. */
+    private record Label(String singular, String plural) {
+        String forCount(long total) {
+            return total == 1 ? singular : plural;
+        }
+    }
+
+    /** tabela -> rotulo legivel. */
+    private static final Map<String, Label> SECTOR_REFERENCES = new LinkedHashMap<>();
+    private static final Map<String, Label> ENTERPRISE_REFERENCES = new LinkedHashMap<>();
 
     static {
-        SECTOR_REFERENCES.put("users", "usuários");
-        SECTOR_REFERENCES.put("inventory_movements", "movimentações de estoque");
-        SECTOR_REFERENCES.put("asset_movements", "movimentações de ativos");
-        SECTOR_REFERENCES.put("purchase_orders", "pedidos de compra");
-        SECTOR_REFERENCES.put("apportionments", "rateios de nota fiscal");
+        SECTOR_REFERENCES.put("users", new Label("usuário", "usuários"));
+        SECTOR_REFERENCES.put("inventory_movements",
+                new Label("movimentação de estoque", "movimentações de estoque"));
+        SECTOR_REFERENCES.put("asset_movements",
+                new Label("movimentação de ativos", "movimentações de ativos"));
+        SECTOR_REFERENCES.put("purchase_orders", new Label("pedido de compra", "pedidos de compra"));
+        SECTOR_REFERENCES.put("apportionments",
+                new Label("rateio de nota fiscal", "rateios de nota fiscal"));
 
-        ENTERPRISE_REFERENCES.put("sectors", "setores");
-        ENTERPRISE_REFERENCES.put("contracts", "contratos");
+        ENTERPRISE_REFERENCES.put("sectors", new Label("setor", "setores"));
+        ENTERPRISE_REFERENCES.put("contracts", new Label("contrato", "contratos"));
     }
 
     @PersistenceContext
@@ -51,7 +61,7 @@ public class ReferenceGuard {
         return usages(ENTERPRISE_REFERENCES, "enterprise_id", enterpriseId);
     }
 
-    private Map<String, Long> usages(Map<String, String> references, String column, UUID id) {
+    private Map<String, Long> usages(Map<String, Label> references, String column, UUID id) {
         Map<String, Long> found = new LinkedHashMap<>();
 
         references.forEach((table, label) -> {
@@ -62,7 +72,7 @@ public class ReferenceGuard {
                     .getSingleResult();
 
             if (total.longValue() > 0) {
-                found.put(label, total.longValue());
+                found.put(label.forCount(total.longValue()), total.longValue());
             }
         });
 
