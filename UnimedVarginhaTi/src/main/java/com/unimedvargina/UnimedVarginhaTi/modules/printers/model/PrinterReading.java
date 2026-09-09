@@ -68,6 +68,16 @@ public class PrinterReading extends BaseEntity {
     @Column(nullable = false)
     private boolean corrected = false;
 
+    /**
+     * Se a contagem do mes ja foi informada -- pelo import ou a mao.
+     *
+     * <p>E explicito de proposito: inferir pela contagem zerada confundiria
+     * "ninguem preencheu" com "nao imprimiu nada", e e exatamente a impressora
+     * esquecida que fecha o mes errado.
+     */
+    @Column(nullable = false)
+    private boolean informed = false;
+
     private String notes;
 
     /**
