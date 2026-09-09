@@ -15,6 +15,8 @@ public record ReadingResponseDTO(
         String serialNumber,
         String model,
         String assetTag,
+        /** Empresa da impressora: o rateio so pode usar setores dela. */
+        UUID enterpriseId,
         String enterpriseName,
         LocalDate competence,
         Integer blackStart,
@@ -54,6 +56,7 @@ public record ReadingResponseDTO(
                 r.getPrinter().getSerialNumber(),
                 r.getPrinter().getModel(),
                 r.getPrinter().getAssetTag(),
+                r.getPrinter().getEnterprise() == null ? null : r.getPrinter().getEnterprise().getId(),
                 r.getPrinter().getEnterprise() == null ? null : r.getPrinter().getEnterprise().getName(),
                 r.getCompetence(),
                 r.getBlackStart(), r.getBlackEnd(),

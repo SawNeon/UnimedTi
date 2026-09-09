@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ArrowsLeftRight, Plus, Trash } from '@phosphor-icons/react';
+import { ArrowsLeftRight, Plus, Trash, Lock, LockOpen } from '@phosphor-icons/react';
 import { PrinterService } from '../services/PrinterService';
 import type { ReadingDTO } from '../../../shared/types/Printer';
 import type { SectorDTO } from '../../../shared/types/Registry';
+import { distribuirIgualmente, rebalance, somaRateio } from '../../../shared/utils/rateio';
+import type { ShareRow } from '../../../shared/utils/rateio';
 import styles from '../../Stock/pages/ProductForm.module.css';
 
 interface ReadingFormProps {
@@ -10,11 +12,6 @@ interface ReadingFormProps {
   sectors: SectorDTO[];
   onSuccess: () => void;
   onCancel: () => void;
-}
-
-interface ShareRow {
-  sectorId: string;
-  percentage: number;
 }
 
 /**
@@ -37,7 +34,25 @@ export function ReadingForm({ reading, sectors, onSuccess, onCancel }: ReadingFo
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const somaRateio = shares.reduce((total, s) => total + Number(s.percentage || 0), 0);
+  const soma = somaRateio(shares);
+
+  /** Editar uma linha reequilibra as outras: a soma nunca passa de 100. */
+  const alterarPercentual = (indice: number, valor: number) => {
+    const copia = shares.map((row, i) => (i === indice ? { ...row, percentage: valor } : row));
+    setShares(rebalance(copia, indice));
+  };
+
+  const adicionarSetor = (sectorId: string) => {
+    const copia = [...shares, { sectorId, percentage: 0 }];
+    // Sem nada definido ainda, divide igualmente; com divisão existente, o novo
+    // setor entra tomando espaço proporcional dos demais.
+    setShares(shares.length === 0 ? distribuirIgualmente(copia) : rebalance(copia, copia.length - 1));
+  };
+
+  const removerSetor = (indice: number) => {
+    const restante = shares.filter((_, i) => i !== indice);
+    setShares(restante.length === 0 ? [] : distribuirIgualmente(restante));
+  };
   const consumoPreto = Math.max(0, blackEnd - blackStart) + Number(a3Black || 0);
   const consumoCor = Math.max(0, colorEnd - colorStart) + Number(a3Color || 0);
   const invertido = blackEnd < blackStart || colorEnd < colorStart;
@@ -63,7 +78,10 @@ export function ReadingForm({ reading, sectors, onSuccess, onCancel }: ReadingFo
     }
   };
 
-  const disponiveis = sectors.filter(s => !shares.some(r => r.sectorId === s.id));
+  // Só setores da empresa da impressora: uma impressora do Hospital não pode ser
+  // rateada em centro de custo da Operadora.
+  const daEmpresa = sectors.filter(s => !reading.enterpriseId || s.enterpriseId === reading.enterpriseId);
+  const disponiveis = daEmpresa.filter(s => !shares.some(r => r.sectorId === s.id));
 
   return (
     <div className={styles.pageContainer}>
@@ -150,7 +168,7 @@ export function ReadingForm({ reading, sectors, onSuccess, onCancel }: ReadingFo
 
           <div>
             <label className={styles.label}>
-              Rateio deste mês — soma {somaRateio.toFixed(2).replace('.', ',')}%
+              Rateio deste mês — soma {soma.toFixed(2).replace('.', ',')}%
             </label>
             <small style={{ color: '#666', display: 'block', marginBottom: 8 }}>
               Vale só para este mês. Alterar aqui não mexe nos meses anteriores nem no
@@ -167,16 +185,19 @@ export function ReadingForm({ reading, sectors, onSuccess, onCancel }: ReadingFo
                   style={{ width: 110 }}
                   type="number" min="0" max="100" step="0.01"
                   value={row.percentage}
-                  onChange={(e) => {
-                    const copia = [...shares];
-                    copia[i] = { ...row, percentage: Number(e.target.value) };
-                    setShares(copia);
-                  }}
+                  onChange={(e) => alterarPercentual(i, Number(e.target.value))}
                 />
                 <span>%</span>
                 <button type="button" className={styles.input}
+                        style={{ width: 42, cursor: 'pointer', color: row.locked ? '#146556' : '#666' }}
+                        onClick={() => setShares(shares.map((r, idx) => idx === i ? { ...r, locked: !r.locked } : r))}
+                        title={row.locked ? 'Destravar: volta a absorver ajustes' : 'Travar: mantém o valor quando outra linha mudar'}
+                        aria-label={row.locked ? 'Destravar percentual' : 'Travar percentual'}>
+                  {row.locked ? <Lock size={16} /> : <LockOpen size={16} />}
+                </button>
+                <button type="button" className={styles.input}
                         style={{ width: 42, cursor: 'pointer', color: '#d32f2f' }}
-                        onClick={() => setShares(shares.filter((_, idx) => idx !== i))}
+                        onClick={() => removerSetor(i)}
                         aria-label="Remover setor do rateio">
                   <Trash size={16} />
                 </button>
@@ -191,7 +212,7 @@ export function ReadingForm({ reading, sectors, onSuccess, onCancel }: ReadingFo
                   value=""
                   onChange={(e) => {
                     if (!e.target.value) return;
-                    setShares([...shares, { sectorId: e.target.value, percentage: 0 }]);
+                    adicionarSetor(e.target.value);
                   }}
                 >
                   <option value="">+ Adicionar setor ao rateio...</option>

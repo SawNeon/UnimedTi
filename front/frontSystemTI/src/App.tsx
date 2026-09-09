@@ -50,6 +50,7 @@ import { PrinterClosing } from './modules/Printers/pages/PrinterClosing';
 import { PrinterList } from './modules/Printers/pages/PrinterList';
 import { PrinterForm } from './modules/Printers/pages/PrinterForm';
 import { ReadingForm } from './modules/Printers/pages/ReadingForm';
+import { PriceSettings } from './modules/Printers/pages/PriceSettings';
 import type { PrinterDTO, ReadingDTO } from './shared/types/Printer';
 import { Dashboard } from './modules/Dashboard/pages/Dashboard';
 import { Login } from './modules/Auth/pages/Login';
@@ -145,7 +146,7 @@ function App() {
   const [registryReloadToken, setRegistryReloadToken] = useState(0);
 
   // Impressoras: o fechamento do mês e o cadastro dividem a mesma tela.
-  const [printerTab, setPrinterTab] = useState<'closing' | 'registry'>('closing');
+  const [printerTab, setPrinterTab] = useState<'closing' | 'registry' | 'prices'>('closing');
   const [editingPrinter, setEditingPrinter] = useState<PrinterDTO | null>(null);
   const [editingReading, setEditingReading] = useState<ReadingDTO | null>(null);
   const [printerReloadToken, setPrinterReloadToken] = useState(0);
@@ -230,7 +231,7 @@ function App() {
       .catch((error) => console.error('Erro ao carregar setores:', error));
   }, [activeModule]);
 
-  const handlePrinterTab = (tab: 'closing' | 'registry') => {
+  const handlePrinterTab = (tab: 'closing' | 'registry' | 'prices') => {
     setPrinterTab(tab);
     setActiveScreen('list');
     setEditingPrinter(null);
@@ -308,7 +309,9 @@ function App() {
     if (activeModule === 'order') return 'Pedidos de compras';
     if (activeModule === 'dashboard') return 'Painel de custos';
     if (activeModule === 'printers') {
-      return printerTab === 'closing' ? 'Fechamento de impressoras' : 'Cadastro de impressoras';
+      if (printerTab === 'closing') return 'Fechamento de impressoras';
+      if (printerTab === 'prices') return 'Preços e condições';
+      return 'Cadastro de impressoras';
     }
     if (activeModule === 'users') return 'Gestão de usuários';
     if (activeModule === 'registry') {
@@ -334,9 +337,13 @@ function App() {
       return 'Evolução do gasto, custo por empresa e por centro de custo.';
     }
     if (activeModule === 'printers') {
-      return printerTab === 'closing'
-        ? 'Contagem do mês, importação do PrintWay e custo por empresa e centro de custo.'
-        : 'O parque de impressoras e o rateio padrão de cada uma.';
+      if (printerTab === 'closing') {
+        return 'Contagem do mês, importação do PrintWay e custo por empresa e centro de custo.';
+      }
+      if (printerTab === 'prices') {
+        return 'Preço da página e franquia por empresa, válidos a partir de um mês.';
+      }
+      return 'O parque de impressoras e o rateio padrão de cada uma.';
     }
     if (activeModule === 'users') {
       return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
@@ -478,6 +485,10 @@ function App() {
           : <PrinterForm printerToEdit={editingPrinter} onSuccess={handlePrinterSaved} />;
       }
 
+      if (printerTab === 'prices') {
+        return <PriceSettings canOperate={podeCadastrar} />;
+      }
+
       return printerTab === 'closing'
         ? (
           <PrinterClosing
@@ -579,6 +590,13 @@ function App() {
             onClick={() => handlePrinterTab('registry')}
           >
             Impressoras
+          </button>
+
+          <button
+            className={`header-action ${printerTab === 'prices' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('prices')}
+          >
+            Preços
           </button>
 
           {printerTab === 'registry' && canOperate(me, 'USER_MANAGEMENT') && (

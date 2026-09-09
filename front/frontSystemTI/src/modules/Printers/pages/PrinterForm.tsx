@@ -1,19 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Printer as PrinterIcon, Plus, Trash } from '@phosphor-icons/react';
+import { Printer as PrinterIcon, Plus, Trash, Lock, LockOpen } from '@phosphor-icons/react';
 import { PrinterService } from '../services/PrinterService';
 import { EnterpriseService, SectorService } from '../../Registry/services/RegistryService';
 import type { PrinterDTO } from '../../../shared/types/Printer';
 import type { EnterpriseDTO, SectorDTO } from '../../../shared/types/Registry';
+import { distribuirIgualmente, rebalance, somaRateio } from '../../../shared/utils/rateio';
+import type { ShareRow } from '../../../shared/utils/rateio';
 import styles from '../../Stock/pages/ProductForm.module.css';
 
 interface PrinterFormProps {
   printerToEdit?: PrinterDTO | null;
   onSuccess: () => void;
-}
-
-interface ShareRow {
-  sectorId: string;
-  percentage: number;
 }
 
 export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
@@ -36,7 +33,23 @@ export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
   const [saving, setSaving] = useState(false);
 
   const isEdit = Boolean(printerToEdit);
-  const somaRateio = shares.reduce((total, s) => total + Number(s.percentage || 0), 0);
+  const soma = somaRateio(shares);
+
+  /** Editar uma linha reequilibra as outras: a soma nunca passa de 100. */
+  const alterarPercentual = (indice: number, valor: number) => {
+    const copia = shares.map((row, i) => (i === indice ? { ...row, percentage: valor } : row));
+    setShares(rebalance(copia, indice));
+  };
+
+  const adicionarSetor = (sectorId: string) => {
+    const copia = [...shares, { sectorId, percentage: 0 }];
+    setShares(shares.length === 0 ? distribuirIgualmente(copia) : rebalance(copia, copia.length - 1));
+  };
+
+  const removerSetor = (indice: number) => {
+    const restante = shares.filter((_, i) => i !== indice);
+    setShares(restante.length === 0 ? [] : distribuirIgualmente(restante));
+  };
 
   useEffect(() => {
     Promise.all([EnterpriseService.getAll(), SectorService.getAll()])
@@ -74,7 +87,11 @@ export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
     }
   };
 
-  const disponiveis = sectors.filter(s => !shares.some(r => r.sectorId === s.id));
+  // Só setores da empresa escolhida: uma impressora do Hospital não é rateada em
+  // centro de custo da Operadora. Sem empresa escolhida a lista fica vazia —
+  // oferecer todos antes da escolha convida justamente ao engano.
+  const daEmpresa = enterpriseId ? sectors.filter(s => s.enterpriseId === enterpriseId) : [];
+  const disponiveis = daEmpresa.filter(s => !shares.some(r => r.sectorId === s.id));
 
   return (
     <div className={styles.pageContainer}>
@@ -124,7 +141,12 @@ export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
 
           <label className={styles.label}>Empresa</label>
           <select className={styles.input} value={enterpriseId}
-                  onChange={(e) => setEnterpriseId(e.target.value)} required>
+                  onChange={(e) => {
+                    // Trocar de empresa zera o rateio: os setores da anterior não
+                    // pertencem à nova, e manter a divisão gravaria custo no CNPJ errado.
+                    setEnterpriseId(e.target.value);
+                    setShares([]);
+                  }} required>
             <option value="" disabled>Escolha a empresa...</option>
             {enterprises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
@@ -149,7 +171,7 @@ export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
 
           <div>
             <label className={styles.label}>
-              Rateio padrão — soma {somaRateio.toFixed(2).replace('.', ',')}%
+              Rateio padrão — soma {soma.toFixed(2).replace('.', ',')}%
             </label>
             <small style={{ color: '#666', display: 'block', marginBottom: 8 }}>
               Precisa fechar 100%, ou ficar vazio. Este é o padrão copiado para cada mês ao
@@ -163,27 +185,36 @@ export function PrinterForm({ printerToEdit, onSuccess }: PrinterFormProps) {
                 </span>
                 <input className={styles.input} style={{ width: 110 }}
                        type="number" min="0" max="100" step="0.01" value={row.percentage}
-                       onChange={(e) => {
-                         const copia = [...shares];
-                         copia[i] = { ...row, percentage: Number(e.target.value) };
-                         setShares(copia);
-                       }} />
+                       onChange={(e) => alterarPercentual(i, Number(e.target.value))} />
                 <span>%</span>
                 <button type="button" className={styles.input}
+                        style={{ width: 42, cursor: 'pointer', color: row.locked ? '#146556' : '#666' }}
+                        onClick={() => setShares(shares.map((r, idx) => idx === i ? { ...r, locked: !r.locked } : r))}
+                        title={row.locked ? 'Destravar: volta a absorver ajustes' : 'Travar: mantém o valor quando outra linha mudar'}
+                        aria-label={row.locked ? 'Destravar percentual' : 'Travar percentual'}>
+                  {row.locked ? <Lock size={16} /> : <LockOpen size={16} />}
+                </button>
+                <button type="button" className={styles.input}
                         style={{ width: 42, cursor: 'pointer', color: '#d32f2f' }}
-                        onClick={() => setShares(shares.filter((_, idx) => idx !== i))}
+                        onClick={() => removerSetor(i)}
                         aria-label="Remover setor do rateio">
                   <Trash size={16} />
                 </button>
               </div>
             ))}
 
+            {!enterpriseId && (
+              <p style={{ color: '#666', fontSize: 13 }}>
+                Escolha a empresa acima para ver os setores dela.
+              </p>
+            )}
+
             {disponiveis.length > 0 && (
               <div style={{ display: 'flex', gap: 8 }}>
                 <select className={styles.input} style={{ flex: 1 }} value=""
                         onChange={(e) => {
                           if (!e.target.value) return;
-                          setShares([...shares, { sectorId: e.target.value, percentage: 0 }]);
+                          adicionarSetor(e.target.value);
                         }}>
                   <option value="">+ Adicionar setor ao rateio...</option>
                   {disponiveis.map(s => (

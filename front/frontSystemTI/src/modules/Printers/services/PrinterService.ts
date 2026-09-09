@@ -4,8 +4,12 @@ import type {
   ImportResultDTO,
   PrinterDTO,
   PrinterPayload,
+  PriceDTO,
+  PricePayload,
   ReadingDTO,
-  ReadingPayload
+  ReadingPayload,
+  TermsDTO,
+  TermsPayload
 } from '../../../shared/types/Printer';
 
 export const PrinterService = {
@@ -39,5 +43,16 @@ export const PrinterService = {
     (await api.put(`/printers/readings/${id}`, payload)).data,
 
   closing: async (competence: string): Promise<ClosingDTO> =>
-    (await api.get('/printers/closing', { params: { competence } })).data
+    (await api.get('/printers/closing', { params: { competence } })).data,
+
+  prices: async (): Promise<PriceDTO[]> => (await api.get('/printers/prices')).data,
+
+  /** Grava a vigência do mês informado; meses anteriores seguem no preço antigo. */
+  savePrice: async (payload: PricePayload): Promise<PriceDTO> =>
+    (await api.post('/printers/prices', payload)).data,
+
+  terms: async (): Promise<TermsDTO[]> => (await api.get('/printers/terms')).data,
+
+  saveTerms: async (payload: TermsPayload): Promise<TermsDTO> =>
+    (await api.post('/printers/terms', payload)).data
 };

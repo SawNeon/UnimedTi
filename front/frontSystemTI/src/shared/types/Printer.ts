@@ -40,6 +40,8 @@ export interface ReadingDTO {
   serialNumber: string;
   model: string | null;
   assetTag: string | null;
+  /** Empresa da impressora: o rateio só pode usar setores dela. */
+  enterpriseId: string | null;
   enterpriseName: string | null;
   competence: string;
   blackStart: number;
@@ -111,4 +113,39 @@ export interface ClosingDTO {
     semRateio: string[];
     paginasSemRateio: number;
   };
+}
+
+/** Preço da página, válido a partir de um mês. */
+export interface PriceDTO {
+  id: string;
+  validFrom: string;
+  blackPageCost: number;
+  colorPageCost: number;
+}
+
+export interface PricePayload {
+  validFrom: string;
+  blackPageCost: number;
+  colorPageCost: number;
+}
+
+/** Condições do contrato de impressão de uma empresa, a partir de um mês. */
+export interface TermsDTO {
+  id: string;
+  validFrom: string;
+  enterpriseId: string;
+  enterpriseName: string;
+  colorFranchiseLimit: number;
+  colorFranchiseValue: number;
+  fixedCharge: number;
+  includedInTotal: boolean;
+}
+
+export interface TermsPayload {
+  validFrom: string;
+  enterpriseId: string;
+  colorFranchiseLimit: number;
+  colorFranchiseValue: number;
+  fixedCharge: number;
+  includedInTotal: boolean;
 }
