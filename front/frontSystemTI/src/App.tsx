@@ -28,7 +28,8 @@ import {
   InvoiceIcon,
   UsersThree,
   Buildings,
-  Printer as PrinterIcon
+  Printer as PrinterIcon,
+  ChartLine
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
@@ -50,12 +51,16 @@ import { PrinterList } from './modules/Printers/pages/PrinterList';
 import { PrinterForm } from './modules/Printers/pages/PrinterForm';
 import { ReadingForm } from './modules/Printers/pages/ReadingForm';
 import type { PrinterDTO, ReadingDTO } from './shared/types/Printer';
+import { Dashboard } from './modules/Dashboard/pages/Dashboard';
 import { Login } from './modules/Auth/pages/Login';
 
-type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'printers' | 'users' | 'registry';
+type ActiveModule = 'welcome' | 'dashboard' | 'stock' | 'asset' | 'order' | 'financial' | 'printers' | 'users' | 'registry';
 
 /** Cada modulo de tela corresponde a um modulo de permissao do backend. */
 const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
+  // O painel soma contratos e impressoras; a regra real está em podeVerModulo,
+  // porque ele exige leitura NOS DOIS e este mapa só comporta um.
+  dashboard: 'FINANCIAL',
   stock: 'STOCK',
   asset: 'ASSET',
   order: 'ORDER',
@@ -74,6 +79,7 @@ type NavItem = { module: SidebarModule; label: string; icon: typeof Package };
 
 /** Módulos da rotina diária — ocupam o corpo do menu. */
 const OPERATION_MODULES: NavItem[] = [
+  { module: 'dashboard', label: 'Painel', icon: ChartLine },
   { module: 'stock', label: 'Estoque', icon: Package },
   { module: 'asset', label: 'Ativos', icon: Desktop },
   { module: 'order', label: 'Pedidos', icon: ShoppingCart },
@@ -91,6 +97,7 @@ const ADMIN_MODULES: NavItem[] = [
 ];
 
 const QUICK_CARD_HINT: Record<SidebarModule, string> = {
+  dashboard: 'Custos e indicadores',
   stock: 'Produtos e movimentações',
   asset: 'Patrimônio e empréstimos',
   order: 'Solicitações de compra',
@@ -99,6 +106,17 @@ const QUICK_CARD_HINT: Record<SidebarModule, string> = {
   users: 'Acessos e perfis',
   registry: 'Empresas e setores'
 };
+
+/**
+ * O painel reúne custo de contratos e de impressoras. Sem leitura nos dois ele
+ * mostraria metade dos números como se fosse o total, então exige os dois.
+ */
+function podeVerModulo(me: MeDTO | null, module: SidebarModule): boolean {
+  if (module === 'dashboard') {
+    return canSee(me, 'FINANCIAL') && canSee(me, 'PRINTER');
+  }
+  return canSee(me, MODULE_PERMISSION[module]);
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -288,6 +306,7 @@ function App() {
     if (activeModule === 'stock') return 'Gestão de estoque';
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
+    if (activeModule === 'dashboard') return 'Painel de custos';
     if (activeModule === 'printers') {
       return printerTab === 'closing' ? 'Fechamento de impressoras' : 'Cadastro de impressoras';
     }
@@ -311,6 +330,9 @@ function App() {
     }
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
+    if (activeModule === 'dashboard') {
+      return 'Evolução do gasto, custo por empresa e por centro de custo.';
+    }
     if (activeModule === 'printers') {
       return printerTab === 'closing'
         ? 'Contagem do mês, importação do PrintWay e custo por empresa e centro de custo.'
@@ -346,7 +368,7 @@ function App() {
 
           <div className="quick-grid" aria-label="Acesso rápido aos módulos">
             {OPERATION_MODULES
-              .filter(item => canSee(me, MODULE_PERMISSION[item.module]))
+              .filter(item => podeVerModulo(me, item.module))
               .map(item => (
                 <button
                   key={item.module}
@@ -433,6 +455,10 @@ function App() {
       }
 
       return <OrderList />;
+    }
+
+    if (activeModule === 'dashboard') {
+      return <Dashboard />;
     }
 
     if (activeModule === 'printers') {
@@ -532,7 +558,9 @@ function App() {
   };
 
   const renderModuleActions = () => {
-    if (activeModule === 'welcome') {
+    // O painel tem o próprio filtro de mês dentro do card, então não usa a barra
+    // de ações; sem este retorno ele herdava os botões do bloco padrão.
+    if (activeModule === 'welcome' || activeModule === 'dashboard') {
       return null;
     }
 
@@ -714,7 +742,7 @@ function App() {
 
           {/* O menu mostra só o que a pessoa alcança. É conveniência de tela: o
               backend recusaria a chamada de qualquer forma. */}
-          {OPERATION_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
+          {OPERATION_MODULES.filter(item => podeVerModulo(me, item.module)).map(item => (
             <button
               key={item.module}
               onClick={() => handleSelectModule(item.module)}

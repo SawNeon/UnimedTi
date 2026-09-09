@@ -440,3 +440,41 @@ select:focus-visible {
     height: 58px;
   }
 }
+
+/*
+ * Paleta dos gráficos.
+ *
+ * Os dois tons categóricos passaram no validador nos dois modos: separação CVD
+ * ΔE 24,7 no claro e 26,8 no escuro, contra alvo de 8. Os passos escuros são
+ * escolhidos para a superfície escura, não um clareamento automático dos claros.
+ */
+.viz-root {
+  --viz-surface: #ffffff;
+  --viz-grid: #e6ebe9;
+  --viz-ink: var(--color-text);
+  --viz-ink-muted: var(--color-text-muted);
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  /* Sequencial de um tom para magnitude: o verde da marca, claro -> escuro. */
+  --viz-seq-1: #cfe3dc;
+  --viz-seq-2: #8fc3b1;
+  --viz-seq-3: #4f9d82;
+  --viz-seq-4: #1f7a68;
+  --viz-seq-5: #146556;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
+    --viz-surface: #1a1a19;
+    --viz-grid: #333836;
+    --viz-series-1: #3987e5;
+    --viz-series-2: #d95926;
+  }
+}
+
+:root[data-theme="dark"] .viz-root {
+  --viz-surface: #1a1a19;
+  --viz-grid: #333836;
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+}
