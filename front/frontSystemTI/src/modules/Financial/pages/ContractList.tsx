@@ -8,6 +8,46 @@ interface ContractListProps {
     onOpenCostCenters: (invoiceId: string) => void;
 }
 
+const formatMoney = (value: number) =>
+    Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const formatDate = (iso: string) => {
+    const [ano, mes, dia] = iso.split('-');
+    return `${dia}/${mes}/${ano}`;
+};
+
+/**
+ * Reproduz a coluna COMPARATIVO da planilha, mas o valor vem calculado do
+ * backend a partir da nota do mês anterior — não é digitado a cada mês.
+ */
+function renderComparison(contract: ContractMonthResponse) {
+    const { comparison, difference, differencePercent } = contract;
+
+    if (comparison === 'PENDENTE') {
+        return <span className={styles.lowStock}>AGUARDANDO</span>;
+    }
+    if (comparison === 'PRIMEIRA') {
+        return <span className={styles.pageButton} style={{ display: 'inline-block' }}>PRIMEIRA NOTA</span>;
+    }
+    if (comparison === 'MANTEVE') {
+        return <span className={styles.goodStock}>MANTEVE</span>;
+    }
+
+    const subiu = comparison === 'AUMENTOU';
+    const sinal = subiu ? '+' : '';
+    const detalhe = difference == null
+        ? ''
+        : ` ${sinal}${formatMoney(difference)}${
+            differencePercent == null ? '' : ` (${sinal}${differencePercent}%)`
+          }`;
+
+    return (
+        <span className={subiu ? styles.lowStock : styles.goodStock}>
+            {subiu ? 'AUMENTOU' : 'DIMINUIU'}{detalhe}
+        </span>
+    );
+}
+
 export function ContractList({ onOpenCostCenters }: ContractListProps) {
     const [contracts, setContracts] = useState<ContractMonthResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -113,7 +153,10 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                         <th>Tipo</th>
                                         <th>Descrição</th>
                                         <th>Status ({selectedMonth})</th>
-                                        <th>Valor da Nota</th>
+                                        <th style={{ textAlign: 'right' }}>Mês anterior</th>
+                                        <th style={{ textAlign: 'right' }}>Valor da Nota</th>
+                                        <th>Comparativo</th>
+                                        <th>Entregar até</th>
                                         <th>Centro de Custo</th>
                                         <th>Lançamento</th>
                                     </tr>
@@ -137,12 +180,23 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                                         <span className={styles.lowStock}>PENDENTE</span>
                                                     )}
                                                 </td>
-                                                <td>
-                                                    {hasInvoice && invoiceData ? (
-                                                        `R$ ${Number(invoiceData.value).toFixed(2)}`
-                                                    ) : (
-                                                        "-"
-                                                    )}
+                                                <td style={{ textAlign: 'right', color: '#666' }}>
+                                                    {contract.previousAmount != null
+                                                        ? formatMoney(contract.previousAmount)
+                                                        : '—'}
+                                                </td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    {hasInvoice && invoiceData
+                                                        ? <strong>{formatMoney(invoiceData.value)}</strong>
+                                                        : '—'}
+                                                </td>
+                                                <td>{renderComparison(contract)}</td>
+                                                <td style={{ color: '#666' }}>
+                                                    {invoiceData?.deliveredAt
+                                                        ? `entregue em ${formatDate(invoiceData.deliveredAt)}`
+                                                        : invoiceData?.deliveryDeadline
+                                                            ? formatDate(invoiceData.deliveryDeadline)
+                                                            : '—'}
                                                 </td>
                                                 <td>
                                                     <button
@@ -167,8 +221,8 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
-                                        <td colSpan={3} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
+                                        <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
+                                        <td colSpan={5} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
                                             {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </td>
                                     </tr>
