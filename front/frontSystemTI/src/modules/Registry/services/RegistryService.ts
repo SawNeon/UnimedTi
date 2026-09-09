@@ -3,7 +3,9 @@ import type {
   EnterpriseDTO,
   EnterprisePayload,
   SectorDTO,
-  SectorPayload
+  SectorPayload,
+  SupplierDTO,
+  SupplierPayload
 } from '../../../shared/types/Registry';
 
 export const EnterpriseService = {
@@ -27,5 +29,17 @@ export const SectorService = {
   /** Recusado quando houver movimentação, pedido ou rateio vinculado. */
   remove: async (id: string): Promise<void> => {
     await api.delete(`/sectors/${id}`);
+  }
+};
+
+export const SupplierService = {
+  getAll: async (): Promise<SupplierDTO[]> => (await api.get('/suppliers')).data,
+  create: async (payload: SupplierPayload): Promise<SupplierDTO> =>
+    (await api.post('/suppliers', payload)).data,
+  update: async (id: string, payload: SupplierPayload): Promise<SupplierDTO> =>
+    (await api.put(`/suppliers/${id}`, payload)).data,
+  /** Recusado quando houver contrato vinculado; nesse caso, desative. */
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`/suppliers/${id}`);
   }
 };

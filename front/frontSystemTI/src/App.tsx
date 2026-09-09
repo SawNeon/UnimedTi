@@ -44,7 +44,9 @@ import { EnterpriseList } from './modules/Registry/pages/EnterpriseList';
 import { EnterpriseForm } from './modules/Registry/pages/EnterpriseForm';
 import { SectorList } from './modules/Registry/pages/SectorList';
 import { SectorForm } from './modules/Registry/pages/SectorForm';
-import type { EnterpriseDTO, SectorDTO } from './shared/types/Registry';
+import { SupplierList } from './modules/Registry/pages/SupplierList';
+import { SupplierForm } from './modules/Registry/pages/SupplierForm';
+import type { EnterpriseDTO, SectorDTO, SupplierDTO } from './shared/types/Registry';
 import { SectorService } from './modules/Registry/services/RegistryService';
 import { PrinterClosing } from './modules/Printers/pages/PrinterClosing';
 import { PrinterList } from './modules/Printers/pages/PrinterList';
@@ -107,7 +109,7 @@ const QUICK_CARD_HINT: Record<SidebarModule, string> = {
   financial: 'Contratos e notas',
   printers: 'Contagem e rateio',
   users: 'Acessos e perfis',
-  registry: 'Empresas e setores'
+  registry: 'Empresas, setores e fornecedores'
 };
 
 /**
@@ -141,8 +143,10 @@ function App() {
   const [me, setMe] = useState<MeDTO | null>(null);
   const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
 
-  // Cadastros: empresas e setores dividem a mesma tela, alternadas pela aba.
-  const [registryTab, setRegistryTab] = useState<'enterprises' | 'sectors'>('enterprises');
+  // Cadastros: empresas, setores e fornecedores dividem a mesma tela, alternados
+  // pela aba. Empresa é quem paga; fornecedor é quem emite a nota.
+  const [registryTab, setRegistryTab] = useState<'enterprises' | 'sectors' | 'suppliers'>('enterprises');
+  const [editingSupplier, setEditingSupplier] = useState<SupplierDTO | null>(null);
   const [editingEnterprise, setEditingEnterprise] = useState<EnterpriseDTO | null>(null);
   const [editingSector, setEditingSector] = useState<SectorDTO | null>(null);
   // Salvar uma empresa muda o nome exibido na lista de setores.
@@ -269,16 +273,18 @@ function App() {
   };
 
   /** Trocar de aba fecha o formulário: ele pertencia à outra entidade. */
-  const handleRegistryTab = (tab: 'enterprises' | 'sectors') => {
+  const handleRegistryTab = (tab: 'enterprises' | 'sectors' | 'suppliers') => {
     setRegistryTab(tab);
     setActiveScreen('list');
     setEditingEnterprise(null);
     setEditingSector(null);
+    setEditingSupplier(null);
   };
 
   const handleRegistrySaved = () => {
     setEditingEnterprise(null);
     setEditingSector(null);
+    setEditingSupplier(null);
     setRegistryReloadToken(token => token + 1);
     setActiveScreen('list');
   };
@@ -328,7 +334,9 @@ function App() {
     }
     if (activeModule === 'users') return 'Gestão de usuários';
     if (activeModule === 'registry') {
-      return registryTab === 'enterprises' ? 'Empresas' : 'Setores';
+      if (registryTab === 'enterprises') return 'Empresas';
+      if (registryTab === 'suppliers') return 'Fornecedores';
+      return 'Setores';
     }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Centros de custo';
@@ -364,9 +372,13 @@ function App() {
       return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
     }
     if (activeModule === 'registry') {
-      return registryTab === 'enterprises'
-        ? 'Os CNPJs do grupo. Contrato e nota fiscal pertencem a um deles.'
-        : 'Os centros de custo usados no rateio e no destino do consumo.';
+      if (registryTab === 'enterprises') {
+        return 'Os CNPJs do grupo. São eles que pagam o contrato.';
+      }
+      if (registryTab === 'suppliers') {
+        return 'As empresas que emitem as notas dos contratos.';
+      }
+      return 'Os centros de custo usados no rateio e no destino do consumo.';
     }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Distribuição da nota por áreas e centros de custo.';
@@ -525,9 +537,22 @@ function App() {
       const podeOperar = canOperate(me, 'USER_MANAGEMENT');
 
       if (activeScreen === 'form') {
-        return registryTab === 'enterprises'
-          ? <EnterpriseForm enterpriseToEdit={editingEnterprise} onSuccess={handleRegistrySaved} />
-          : <SectorForm sectorToEdit={editingSector} onSuccess={handleRegistrySaved} />;
+        if (registryTab === 'enterprises') {
+          return <EnterpriseForm enterpriseToEdit={editingEnterprise} onSuccess={handleRegistrySaved} />;
+        }
+        if (registryTab === 'suppliers') {
+          return <SupplierForm supplierToEdit={editingSupplier} onSuccess={handleRegistrySaved} />;
+        }
+        return <SectorForm sectorToEdit={editingSector} onSuccess={handleRegistrySaved} />;
+      }
+
+      if (registryTab === 'suppliers') {
+        return (
+          <SupplierList
+            onEdit={(supplier) => { setEditingSupplier(supplier); setActiveScreen('form'); }}
+            canOperate={podeOperar}
+          />
+        );
       }
 
       return registryTab === 'enterprises'
@@ -671,16 +696,26 @@ function App() {
             Setores
           </button>
 
+          <button
+            className={`header-action ${registryTab === 'suppliers' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleRegistryTab('suppliers')}
+          >
+            Fornecedores
+          </button>
+
           {canOperate(me, 'USER_MANAGEMENT') && (
             <button
               className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
               onClick={() => {
                 setEditingEnterprise(null);
                 setEditingSector(null);
+                setEditingSupplier(null);
                 setActiveScreen('form');
               }}
             >
-              {registryTab === 'enterprises' ? '+ Nova empresa' : '+ Novo setor'}
+              {registryTab === 'enterprises' ? '+ Nova empresa'
+                : registryTab === 'suppliers' ? '+ Novo fornecedor'
+                : '+ Novo setor'}
             </button>
           )}
         </nav>

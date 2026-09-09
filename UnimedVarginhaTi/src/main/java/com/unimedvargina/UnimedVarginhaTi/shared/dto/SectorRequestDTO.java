@@ -11,9 +11,7 @@ import java.util.UUID;
  *
  * <p>O {@code costCenterCode} e o codigo contabil e o {@code groupName} e o
  * agrupamento usado no rateio ("2. Produtivos", "3. Apoios"). O
- * {@code pyramidCode} e o codigo do mesmo setor no Piramide, usado pelo
- * Financeiro para lancar a nota -- na Operadora ele nao e o mesmo numero do
- * centro de custo.
+ * {@code pyramidCode} e o codigo pontuado do Piramide, que so a Operadora tem.
  */
 public record SectorRequestDTO(
         @NotBlank(message = "O nome do setor é obrigatório.")

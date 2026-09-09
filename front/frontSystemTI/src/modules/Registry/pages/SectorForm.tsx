@@ -106,12 +106,11 @@ export function SectorForm({ sectorToEdit, onSuccess }: SectorFormProps) {
                 className={styles.input}
                 value={costCenterCode}
                 onChange={(e) => setCostCenterCode(e.target.value)}
-                placeholder="Ex: 83 ou 5.09"
+                placeholder="Ex: 83"
                 required
               />
               <small style={{ color: '#666', display: 'block' }}>
-                O código contábil usado no rateio. Aceita ponto: o Hospital usa
-                número inteiro e a Operadora usa código pontuado.
+                O número do centro de custo. É o mesmo do Hospital e da Operadora.
               </small>
             </div>
 
@@ -121,11 +120,11 @@ export function SectorForm({ sectorToEdit, onSuccess }: SectorFormProps) {
                 className={styles.input}
                 value={pyramidCode}
                 onChange={(e) => setPyramidCode(e.target.value)}
-                placeholder="Ex: 219"
+                placeholder="Ex: 5.09"
               />
               <small style={{ color: '#666', display: 'block' }}>
-                É o código que o Financeiro digita para lançar a nota. Em branco,
-                repete o centro de custo.
+                O código pontuado do Pirâmide. Só a Operadora tem; deixe em branco
+                para os setores do Hospital.
               </small>
             </div>
 

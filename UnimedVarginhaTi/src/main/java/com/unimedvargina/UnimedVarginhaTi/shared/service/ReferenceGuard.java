@@ -34,6 +34,7 @@ public class ReferenceGuard {
     /** tabela -> rotulo legivel. */
     private static final Map<String, Label> SECTOR_REFERENCES = new LinkedHashMap<>();
     private static final Map<String, Label> ENTERPRISE_REFERENCES = new LinkedHashMap<>();
+    private static final Map<String, Label> SUPPLIER_REFERENCES = new LinkedHashMap<>();
 
     static {
         SECTOR_REFERENCES.put("users", new Label("usuário", "usuários"));
@@ -47,6 +48,8 @@ public class ReferenceGuard {
 
         ENTERPRISE_REFERENCES.put("sectors", new Label("setor", "setores"));
         ENTERPRISE_REFERENCES.put("contracts", new Label("contrato", "contratos"));
+
+        SUPPLIER_REFERENCES.put("contracts", new Label("contrato", "contratos"));
     }
 
     @PersistenceContext
@@ -59,6 +62,10 @@ public class ReferenceGuard {
 
     public Map<String, Long> enterpriseUsages(UUID enterpriseId) {
         return usages(ENTERPRISE_REFERENCES, "enterprise_id", enterpriseId);
+    }
+
+    public Map<String, Long> supplierUsages(UUID supplierId) {
+        return usages(SUPPLIER_REFERENCES, "supplier_id", supplierId);
     }
 
     private Map<String, Long> usages(Map<String, Label> references, String column, UUID id) {

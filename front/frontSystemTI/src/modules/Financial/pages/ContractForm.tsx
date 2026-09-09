@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { FileText, PlusCircle } from '@phosphor-icons/react';
 import { EnterpriseService } from '../../../shared/services/enterpriseService';
+import { SupplierService } from '../../Registry/services/RegistryService';
 import type { EnterpriseDTO } from '../../../shared/types/Enterprise';
+import type { SupplierDTO } from '../../../shared/types/Registry';
 import { ContractService } from '../services/ContractService';
 import type { ContractDTO, ContractStatus } from '../types/Contract';
 import styles from './ContractForm.module.css';
@@ -12,6 +14,7 @@ interface ContractFormProps {
 
 const initialFormData: ContractDTO = {
   enterprise: undefined,
+  supplier: undefined,
   serviceType: '',
   serviceDescription: '',
   startDate: new Date().toISOString().slice(0, 10),
@@ -22,6 +25,7 @@ const initialFormData: ContractDTO = {
 export function ContractForm({ onSuccess }: ContractFormProps) {
   const [formData, setFormData] = useState<ContractDTO>(initialFormData);
   const [enterprises, setEnterprises] = useState<EnterpriseDTO[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [loadingEnterprises, setLoadingEnterprises] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,16 +35,22 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
 
     async function loadEnterprises() {
       try {
-        const response = await EnterpriseService.getAll();
+        const [empresas, fornecedores] = await Promise.all([
+          EnterpriseService.getAll(),
+          SupplierService.getAll()
+        ]);
 
         if (isMounted) {
-          setEnterprises(response);
+          setEnterprises(empresas);
+          // Fornecedor encerrado nao entra na lista de um contrato novo, mas
+          // continua existindo nos contratos antigos.
+          setSuppliers(fornecedores.filter(f => f.active));
         }
       } catch (loadError) {
         console.error(loadError);
 
         if (isMounted) {
-          setError('Nao foi possivel carregar as empresas.');
+          setError('Nao foi possivel carregar as empresas e os fornecedores.');
         }
       } finally {
         if (isMounted) {
@@ -71,6 +81,14 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
       return;
     }
 
+    if (name === 'supplierId') {
+      setFormData(prev => ({
+        ...prev,
+        supplier: value ? { id: value } : undefined
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -79,7 +97,11 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
 
   const validateForm = () => {
     if (!formData.enterprise?.id) {
-      return 'Selecione a empresa do contrato.';
+      return 'Selecione a empresa que paga o contrato.';
+    }
+
+    if (!formData.supplier?.id) {
+      return 'Selecione a empresa fornecedora.';
     }
 
     if (!formData.serviceType.trim()) {
@@ -148,7 +170,7 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
           <div className={styles.row}>
             <div className={`${styles.field} ${styles.fullWidth}`}>
               <label className={styles.label} htmlFor="enterpriseId">
-                Empresa
+                Empresa que paga
               </label>
               <select
                 id="enterpriseId"
@@ -173,6 +195,36 @@ export function ContractForm({ onSuccess }: ContractFormProps) {
                   Cadastre uma empresa antes de criar um contrato.
                 </p>
               )}
+            </div>
+
+            <div className={`${styles.field} ${styles.fullWidth}`}>
+              <label className={styles.label} htmlFor="supplierId">
+                Empresa fornecedora
+              </label>
+              <select
+                id="supplierId"
+                name="supplierId"
+                className={styles.select}
+                value={formData.supplier?.id ?? ''}
+                onChange={handleInputChange}
+                disabled={loadingEnterprises || saving}
+                required
+              >
+                <option value="">
+                  {loadingEnterprises ? 'Carregando fornecedores...' : 'Selecione o fornecedor'}
+                </option>
+                {suppliers.map(supplier => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                    {supplier.document ? ` — ${supplier.document}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className={styles.helpText}>
+                {suppliers.length === 0
+                  ? 'Cadastre o fornecedor em Cadastros antes de criar o contrato.'
+                  : 'Quem emite a nota. A empresa acima é quem paga.'}
+              </p>
             </div>
 
             <div className={styles.field}>

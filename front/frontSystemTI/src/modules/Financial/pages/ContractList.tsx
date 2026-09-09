@@ -105,7 +105,8 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
 
     const filteredContracts = contracts.filter(contract =>
         (contract.serviceDescription || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getEnterpriseName(contract).toLowerCase().includes(searchTerm.toLowerCase())
+        getEnterpriseName(contract).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contract.supplierName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const totalValue = filteredContracts.reduce((acc, contract) => {
@@ -150,6 +151,7 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                 <thead>
                                     <tr>
                                         <th>Empresa</th>
+                                        <th>Fornecedor</th>
                                         <th>Tipo</th>
                                         <th>Descrição</th>
                                         <th>Status ({selectedMonth})</th>
@@ -169,6 +171,7 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                         return (
                                             <tr key={contract.id}>
                                                 <td>{getEnterpriseName(contract)}</td>
+                                                <td>{contract.supplierName ?? '—'}</td>
                                                 <td>{contract.type}</td>
                                                 <td>{contract.serviceDescription}</td>
                                                 <td>
@@ -221,7 +224,7 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
+                                        <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
                                         <td colSpan={5} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
                                             {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </td>

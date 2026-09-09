@@ -70,6 +70,8 @@ public class ContractService {
             return new ContractResponseDTO(
                     contract.getId(),
                     contract.getEnterprise() != null ? contract.getEnterprise().getName() : "Empresa não informada",
+                    contract.getSupplier() == null ? null : contract.getSupplier().getId(),
+                    contract.getSupplier() == null ? null : contract.getSupplier().getName(),
                     contract.getServiceType(),
                     contract.getServiceDescription(),
                     contract.getStatus(),

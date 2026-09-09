@@ -102,10 +102,10 @@ public class SectorService {
         sector.setEnterprise(enterprise);
         sector.setGroupName(request.groupName().trim());
         sector.setCostCenterCode(request.costCenterCode().trim());
-        // Sem Piramide informado assume-se o proprio centro de custo: e o caso do
-        // Hospital, onde os dois codigos sao o mesmo numero.
+        // So a Operadora tem codigo do Piramide, e ele e pontuado. Em branco fica em
+        // branco -- copiar o centro de custo inventaria um codigo que nao existe.
         sector.setPyramidCode(request.pyramidCode() == null || request.pyramidCode().isBlank()
-                ? request.costCenterCode().trim()
+                ? null
                 : request.pyramidCode().trim());
     }
 

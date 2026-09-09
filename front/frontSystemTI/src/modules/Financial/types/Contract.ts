@@ -4,7 +4,10 @@ export type ContractStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface ContractDTO {
     id?: string;
+    /** O CNPJ da Unimed que paga. */
     enterprise?: EnterpriseDTO;
+    /** A empresa que emite a nota. */
+    supplier?: { id: string };
     serviceType: string;
     serviceDescription: string;
     startDate: string;
@@ -26,6 +29,8 @@ export type CostAllocationType = 'APPORTIONED' | 'ENTERPRISE';
 export interface ContractMonthResponse {
     id: string;
     enterpriseName: string;
+    supplierId: string | null;
+    supplierName: string | null;
     type: string;
     serviceDescription: string;
     status: ContractStatus | string;

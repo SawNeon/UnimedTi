@@ -30,3 +30,19 @@ export interface SectorPayload {
   costCenterCode: string;
   pyramidCode: string | null;
 }
+
+/** Empresa fornecedora: quem emite a nota do contrato. */
+export interface SupplierDTO {
+  id: string;
+  name: string;
+  document: string | null;
+  notes: string | null;
+  active: boolean;
+}
+
+export interface SupplierPayload {
+  name: string;
+  document: string | null;
+  notes: string | null;
+  active: boolean;
+}

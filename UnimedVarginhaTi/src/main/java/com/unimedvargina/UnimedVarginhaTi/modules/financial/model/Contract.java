@@ -2,6 +2,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.financial.model;
 
 import com.unimedvargina.UnimedVarginhaTi.shared.BaseEntity;
 import com.unimedvargina.UnimedVarginhaTi.shared.model.Enterprise;
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Supplier;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,9 +19,19 @@ import java.util.List;
 @NoArgsConstructor
 public class Contract extends BaseEntity {
 
+    /** O CNPJ da Unimed que paga a conta. */
     @ManyToOne
     @JoinColumn(name = "enterprise_id", nullable = false)
     private Enterprise enterprise;
+
+    /**
+     * A empresa que emite a nota. Aceita nulo por causa do contrato antigo, que foi
+     * cadastrado antes deste campo existir -- a tela pede, mas o banco nao pode
+     * recusar o historico que ja esta la.
+     */
+    @ManyToOne
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 
     @Column(nullable = false)
     private String serviceType;

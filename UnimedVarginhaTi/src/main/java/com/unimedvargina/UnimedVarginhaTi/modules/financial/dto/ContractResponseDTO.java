@@ -20,7 +20,11 @@ import java.util.UUID;
  */
 public record ContractResponseDTO(
         UUID id,
+        /** O CNPJ da Unimed que paga. */
         String enterpriseName,
+        /** Quem emite a nota. Nulo no contrato cadastrado antes deste campo existir. */
+        UUID supplierId,
+        String supplierName,
         String type,
         String serviceDescription,
         ContractStatus status,
