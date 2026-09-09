@@ -8,6 +8,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.printers.repository.PrinterRea
 import com.unimedvargina.UnimedVarginhaTi.modules.printers.repository.PrinterRepository;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
+import com.unimedvargina.UnimedVarginhaTi.shared.model.Enterprise;
 import com.unimedvargina.UnimedVarginhaTi.shared.model.Sector;
 import com.unimedvargina.UnimedVarginhaTi.shared.repository.SectorRepository;
 import jakarta.transaction.Transactional;
@@ -232,6 +233,19 @@ public class PrinterReadingService {
 
             Sector sector = sectorRepository.findById(item.sectorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Setor", item.sectorId()));
+
+            // Mesma regra do cadastro: o centro de custo tem de ser da empresa da
+            // impressora, senao o custo de um CNPJ cai no plano de contas de outro.
+            Enterprise daImpressora = reading.getPrinter().getEnterprise();
+            Enterprise doSetor = sector.getEnterprise();
+            if (daImpressora == null || doSetor == null
+                    || !daImpressora.getId().equals(doSetor.getId())) {
+                throw new BusinessRuleException(
+                        "O setor %s não pertence à empresa da impressora %s."
+                                .formatted(sector.getName(),
+                                        reading.getPrinter().getSerialNumber()));
+            }
+
             reading.getShares().add(new PrinterReadingShare(reading, sector, item.percentage()));
         }
     }

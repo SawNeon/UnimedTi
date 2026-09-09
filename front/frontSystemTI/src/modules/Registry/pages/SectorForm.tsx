@@ -17,9 +17,8 @@ export function SectorForm({ sectorToEdit, onSuccess }: SectorFormProps) {
   const [name, setName] = useState(sectorToEdit?.name ?? '');
   const [enterpriseId, setEnterpriseId] = useState(sectorToEdit?.enterpriseId ?? '');
   const [groupName, setGroupName] = useState(sectorToEdit?.groupName ?? '');
-  const [costCenterCode, setCostCenterCode] = useState<number | ''>(
-    sectorToEdit?.costCenterCode ?? ''
-  );
+  const [costCenterCode, setCostCenterCode] = useState(sectorToEdit?.costCenterCode ?? '');
+  const [pyramidCode, setPyramidCode] = useState(sectorToEdit?.pyramidCode ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -43,7 +42,8 @@ export function SectorForm({ sectorToEdit, onSuccess }: SectorFormProps) {
       name,
       enterpriseId,
       groupName,
-      costCenterCode: Number(costCenterCode)
+      costCenterCode: costCenterCode.trim(),
+      pyramidCode: pyramidCode.trim() || null
     };
 
     try {
@@ -104,15 +104,28 @@ export function SectorForm({ sectorToEdit, onSuccess }: SectorFormProps) {
               <label className={styles.label}>Centro de custo</label>
               <input
                 className={styles.input}
-                type="number"
-                min="0"
                 value={costCenterCode}
-                onChange={(e) => setCostCenterCode(e.target.value ? Number(e.target.value) : '')}
-                placeholder="Ex: 83"
+                onChange={(e) => setCostCenterCode(e.target.value)}
+                placeholder="Ex: 83 ou 5.09"
                 required
               />
               <small style={{ color: '#666', display: 'block' }}>
-                O código contábil usado no rateio.
+                O código contábil usado no rateio. Aceita ponto: o Hospital usa
+                número inteiro e a Operadora usa código pontuado.
+              </small>
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label className={styles.label}>Código no Pirâmide</label>
+              <input
+                className={styles.input}
+                value={pyramidCode}
+                onChange={(e) => setPyramidCode(e.target.value)}
+                placeholder="Ex: 219"
+              />
+              <small style={{ color: '#666', display: 'block' }}>
+                É o código que o Financeiro digita para lançar a nota. Em branco,
+                repete o centro de custo.
               </small>
             </div>
 

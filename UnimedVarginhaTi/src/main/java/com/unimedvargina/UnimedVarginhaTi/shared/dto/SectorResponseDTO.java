@@ -8,7 +8,8 @@ public record SectorResponseDTO(
         UUID id,
         String name,
         String groupName,
-        Integer costCenterCode,
+        String costCenterCode,
+        String pyramidCode,
         UUID enterpriseId,
         String enterpriseName
 ) {
@@ -18,6 +19,7 @@ public record SectorResponseDTO(
                 sector.getName(),
                 sector.getGroupName(),
                 sector.getCostCenterCode(),
+                sector.getPyramidCode(),
                 sector.getEnterprise() == null ? null : sector.getEnterprise().getId(),
                 sector.getEnterprise() == null ? null : sector.getEnterprise().getName()
         );

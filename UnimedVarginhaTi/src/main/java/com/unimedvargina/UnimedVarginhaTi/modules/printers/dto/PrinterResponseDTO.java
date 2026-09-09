@@ -19,7 +19,7 @@ public record PrinterResponseDTO(
         boolean active,
         List<ShareDTO> shares
 ) {
-    public record ShareDTO(UUID sectorId, String sectorName, Integer costCenterCode, BigDecimal percentage) {}
+    public record ShareDTO(UUID sectorId, String sectorName, String costCenterCode, BigDecimal percentage) {}
 
     public static PrinterResponseDTO from(Printer printer) {
         List<ShareDTO> shares = printer.getShares().stream()

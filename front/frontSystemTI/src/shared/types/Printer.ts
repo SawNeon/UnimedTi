@@ -1,7 +1,7 @@
 export interface PrinterShareDTO {
   sectorId: string;
   sectorName?: string;
-  costCenterCode?: number;
+  costCenterCode?: string;
   percentage: number;
 }
 
@@ -101,7 +101,12 @@ export interface ClosingDTO {
   sectors: {
     sectorId: string;
     sectorName: string;
-    costCenterCode: number;
+    costCenterCode: string;
+    /** Código do setor no Pirâmide, que é o que o Financeiro lança. */
+    pyramidCode: string | null;
+    /** Cada empresa tem a própria tabela de centros de custo. */
+    enterpriseId: string | null;
+    enterpriseName: string;
     blackPages: number;
     colorPages: number;
     cost: number;

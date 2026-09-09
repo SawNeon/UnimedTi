@@ -154,13 +154,20 @@ public class PrinterClosingService {
                             .add(cor.multiply(price.getColorPageCost()))
                             .setScale(4, RoundingMode.HALF_UP);
 
+                    Enterprise dona = setor.getEnterprise();
+
                     return new ClosingDTO.SectorTotalDTO(
                             setor.getId(), setor.getName(), setor.getCostCenterCode(),
+                            setor.getPyramidCode(),
+                            dona == null ? null : dona.getId(),
+                            dona == null ? "Sem empresa" : dona.getName(),
                             preto.setScale(2, RoundingMode.HALF_UP),
                             cor.setScale(2, RoundingMode.HALF_UP),
                             custo);
                 })
-                .sorted(Comparator.comparing(ClosingDTO.SectorTotalDTO::sectorName, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator
+                        .comparing(ClosingDTO.SectorTotalDTO::enterpriseName, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(ClosingDTO.SectorTotalDTO::sectorName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
         return new ClosingDTO(

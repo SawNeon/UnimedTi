@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PencilSimple, Warning, UploadSimple, CalendarPlus } from '@phosphor-icons/react';
+import { PencilSimple, Warning, UploadSimple, CalendarPlus, FilePdf } from '@phosphor-icons/react';
 import { PrinterService } from '../services/PrinterService';
 import type { ClosingDTO, ImportResultDTO, ReadingDTO } from '../../../shared/types/Printer';
 import styles from '../../Users/pages/UserList.module.css';
@@ -217,6 +217,41 @@ export function PrinterClosing({ canOperate, onEditReading, reloadToken }: Print
   );
 }
 
+type SectorRow = ClosingDTO['sectors'][number];
+
+/** Baixa o PDF de uma empresa. O erro vira alerta: o download não tem onde falhar em silêncio. */
+async function baixarPdf(competence: string, enterpriseId: string, enterpriseName: string) {
+  try {
+    await PrinterService.closingPdf(competence, enterpriseId);
+  } catch (err) {
+    alert(apiMessage(err, `Não foi possível gerar o PDF de ${enterpriseName}.`));
+  }
+}
+
+/**
+ * Agrupa os centros de custo pela empresa dona, preservando a ordem que veio do
+ * backend (já ordenada por empresa e depois por setor).
+ */
+function porEmpresa(closing: ClosingDTO) {
+  const grupos = new Map<string, {
+    enterpriseId: string | null;
+    enterpriseName: string;
+    linhas: SectorRow[];
+    total: number;
+  }>();
+
+  for (const linha of closing.sectors) {
+    const chave = linha.enterpriseName;
+    const grupo = grupos.get(chave)
+      ?? { enterpriseId: linha.enterpriseId, enterpriseName: chave, linhas: [] as SectorRow[], total: 0 };
+    grupo.linhas.push(linha);
+    grupo.total += Number(linha.cost);
+    grupos.set(chave, grupo);
+  }
+
+  return [...grupos.values()];
+}
+
 /** Custo por empresa, rateio por centro de custo e o que impede fechar. */
 function ClosingSummary({ closing }: { closing: ClosingDTO }) {
   const p = closing.pendencies;
@@ -274,32 +309,60 @@ function ClosingSummary({ closing }: { closing: ClosingDTO }) {
           <summary style={{ cursor: 'pointer', fontWeight: 700, marginBottom: 8 }}>
             Rateio por centro de custo ({closing.sectors.length})
           </summary>
-          <div className={styles.tableContainer} style={{ maxHeight: 300 }}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Setor</th>
-                  <th style={{ textAlign: 'right' }}>Centro de custo</th>
-                  <th style={{ textAlign: 'right' }}>Pretas</th>
-                  <th style={{ textAlign: 'right' }}>Coloridas</th>
-                  <th style={{ textAlign: 'right' }}>Custo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {closing.sectors.map(s => (
-                  <tr key={s.sectorId}>
-                    <td>{s.sectorName}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className={styles.profileTag}>{s.costCenterCode}</span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>{number(s.blackPages)}</td>
-                    <td style={{ textAlign: 'right' }}>{number(s.colorPages)}</td>
-                    <td style={{ textAlign: 'right' }}><strong>{money(s.cost)}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+          {/* Uma tabela por empresa. O código de centro de custo só é único dentro
+              do CNPJ, então uma lista única faria dois setores diferentes com o
+              mesmo código parecerem o mesmo setor. */}
+          {porEmpresa(closing).map(grupo => (
+            <div key={grupo.enterpriseName} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '10px 0 6px' }}>
+                <h4 style={{ fontSize: 14, margin: 0 }}>
+                  {grupo.enterpriseName}
+                  <span style={{ fontWeight: 400, color: '#666', marginLeft: 8 }}>
+                    {grupo.linhas.length} centro(s) de custo · {money(grupo.total)}
+                  </span>
+                </h4>
+                {grupo.enterpriseId && (
+                  <button
+                    className={styles.pageButton}
+                    onClick={() => baixarPdf(closing.competence, grupo.enterpriseId!, grupo.enterpriseName)}
+                    title="Baixa a tabela desta empresa em PDF, para anexar à nota"
+                  >
+                    <FilePdf size={16} /> PDF
+                  </button>
+                )}
+              </div>
+              <div className={styles.tableContainer} style={{ maxHeight: 300 }}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Setor</th>
+                      <th style={{ textAlign: 'right' }}>Centro de custo</th>
+                      <th style={{ textAlign: 'right' }}>Pirâmide</th>
+                      <th style={{ textAlign: 'right' }}>Pretas</th>
+                      <th style={{ textAlign: 'right' }}>Coloridas</th>
+                      <th style={{ textAlign: 'right' }}>Custo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grupo.linhas.map(s => (
+                      <tr key={s.sectorId}>
+                        <td>{s.sectorName}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={styles.profileTag}>{s.costCenterCode}</span>
+                        </td>
+                        <td style={{ textAlign: 'right', color: '#666' }}>{s.pyramidCode ?? '—'}</td>
+                        <td style={{ textAlign: 'right' }}>{number(s.blackPages)}</td>
+                        <td style={{ textAlign: 'right' }}>{number(s.colorPages)}</td>
+                        <td style={{ textAlign: 'right' }}><strong>{money(s.cost)}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
           <p style={{ color: '#666', fontSize: 12, marginTop: 8 }}>
             O custo por setor usa só o preço por página. Franquia e acréscimo fixo são do
             contrato da empresa, não de um centro específico — por isso esta soma não

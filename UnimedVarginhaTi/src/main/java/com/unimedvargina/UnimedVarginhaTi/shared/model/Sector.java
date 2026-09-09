@@ -20,7 +20,19 @@ public class Sector extends BaseEntity {
     @Column(nullable = false)
     private String groupName;
 
+    /**
+     * Codigo do centro de custo no plano de contas da empresa. E texto porque a
+     * Operadora usa codigo pontuado ("5.09") e o Hospital usa inteiro ("167").
+     */
     @Column(nullable = false)
-    private Integer costCenterCode;
+    private String costCenterCode;
+
+    /**
+     * Codigo do mesmo setor no Piramide -- o que o Financeiro digita para lancar a
+     * nota. No Hospital coincide com o centro de custo; na Operadora nao (o centro
+     * de custo 5.09 e o Piramide 219).
+     */
+    @Column(name = "pyramid_code")
+    private String pyramidCode;
 
 }

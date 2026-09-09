@@ -101,7 +101,12 @@ public class SectorService {
         sector.setName(request.name().trim());
         sector.setEnterprise(enterprise);
         sector.setGroupName(request.groupName().trim());
-        sector.setCostCenterCode(request.costCenterCode());
+        sector.setCostCenterCode(request.costCenterCode().trim());
+        // Sem Piramide informado assume-se o proprio centro de custo: e o caso do
+        // Hospital, onde os dois codigos sao o mesmo numero.
+        sector.setPyramidCode(request.pyramidCode() == null || request.pyramidCode().isBlank()
+                ? request.costCenterCode().trim()
+                : request.pyramidCode().trim());
     }
 
     private Sector requireSector(UUID id) {

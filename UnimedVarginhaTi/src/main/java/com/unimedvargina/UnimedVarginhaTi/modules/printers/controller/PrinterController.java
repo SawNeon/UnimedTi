@@ -1,6 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.modules.printers.controller;
 
 import com.unimedvargina.UnimedVarginhaTi.modules.printers.dto.*;
+import com.unimedvargina.UnimedVarginhaTi.modules.printers.service.ClosingPdfService;
 import com.unimedvargina.UnimedVarginhaTi.modules.printers.service.PrinterClosingService;
 import com.unimedvargina.UnimedVarginhaTi.modules.printers.service.PrintingPriceService;
 import com.unimedvargina.UnimedVarginhaTi.modules.printers.service.PrinterReadingService;
@@ -9,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +39,9 @@ public class PrinterController {
 
     @Autowired
     private PrinterClosingService closingService;
+
+    @Autowired
+    private ClosingPdfService pdfService;
 
     @Autowired
     private PrintingPriceService priceService;
@@ -107,6 +113,27 @@ public class PrinterController {
     public ResponseEntity<ClosingDTO> closing(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate competence) {
         return ResponseEntity.ok(closingService.calculate(competence));
+    }
+
+    /**
+     * PDF do rateio de uma empresa, no formato da aba PRINT da planilha.
+     *
+     * <p>Um PDF por empresa, porque e assim que ele e usado: o Financeiro lanca
+     * uma nota por CNPJ e leva junto so a tabela daquele CNPJ.
+     */
+    @PreAuthorize("@access.canRead('PRINTER')")
+    @GetMapping("/closing/pdf")
+    public ResponseEntity<byte[]> closingPdf(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate competence,
+            @RequestParam UUID enterpriseId) {
+
+        ClosingPdfService.Pdf pdf = pdfService.build(competence, enterpriseId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(pdf.fileName()).build().toString())
+                .body(pdf.content());
     }
 
     @PreAuthorize("@access.canRead('PRINTER')")

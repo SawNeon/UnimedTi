@@ -165,7 +165,28 @@ public class PrinterService {
 
             Sector sector = sectorRepository.findById(item.sectorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Setor", item.sectorId()));
+
+            requireMesmaEmpresa(printer, sector);
             printer.getShares().add(new PrinterSectorShare(printer, sector, item.percentage()));
+        }
+    }
+
+    /**
+     * O setor do rateio tem de ser da mesma empresa da impressora.
+     *
+     * <p>A tela ja filtra a lista, mas filtro de tela nao e regra: sem isto uma
+     * impressora do Hospital podia jogar custo num centro da Operadora, e o
+     * fechamento mostrava a empresa com um punhado de paginas e os centros de custo
+     * dela com o consumo de outro CNPJ.
+     */
+    private void requireMesmaEmpresa(Printer printer, Sector sector) {
+        UUID daImpressora = printer.getEnterprise() == null ? null : printer.getEnterprise().getId();
+        UUID doSetor = sector.getEnterprise() == null ? null : sector.getEnterprise().getId();
+
+        if (daImpressora == null || !daImpressora.equals(doSetor)) {
+            throw new BusinessRuleException(
+                    "O setor %s não pertence à empresa da impressora %s."
+                            .formatted(sector.getName(), printer.getSerialNumber()));
         }
     }
 

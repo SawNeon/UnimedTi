@@ -17,7 +17,8 @@ export interface SectorDTO {
   id: string;
   name: string;
   groupName: string;
-  costCenterCode: number;
+  costCenterCode: string;
+  pyramidCode: string | null;
   enterpriseId: string | null;
   enterpriseName: string | null;
 }
@@ -26,5 +27,6 @@ export interface SectorPayload {
   name: string;
   enterpriseId: string;
   groupName: string;
-  costCenterCode: number;
+  costCenterCode: string;
+  pyramidCode: string | null;
 }

@@ -52,15 +52,17 @@ import { PrinterForm } from './modules/Printers/pages/PrinterForm';
 import { ReadingForm } from './modules/Printers/pages/ReadingForm';
 import { PriceSettings } from './modules/Printers/pages/PriceSettings';
 import type { PrinterDTO, ReadingDTO } from './shared/types/Printer';
-import { Dashboard } from './modules/Dashboard/pages/Dashboard';
+import { ContractsDashboard } from './modules/Dashboard/pages/ContractsDashboard';
+import { PrintersDashboard } from './modules/Dashboard/pages/PrintersDashboard';
 import { Login } from './modules/Auth/pages/Login';
 
 type ActiveModule = 'welcome' | 'dashboard' | 'stock' | 'asset' | 'order' | 'financial' | 'printers' | 'users' | 'registry';
 
 /** Cada modulo de tela corresponde a um modulo de permissao do backend. */
 const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
-  // O painel soma contratos e impressoras; a regra real está em podeVerModulo,
-  // porque ele exige leitura NOS DOIS e este mapa só comporta um.
+  // O painel tem duas abas, uma por planilha de origem. A entrada no menu segue o
+  // Financeiro; cada aba confere a própria permissão, então quem só cuida de um
+  // lado vê apenas a aba dele.
   dashboard: 'FINANCIAL',
   stock: 'STOCK',
   asset: 'ASSET',
@@ -109,12 +111,13 @@ const QUICK_CARD_HINT: Record<SidebarModule, string> = {
 };
 
 /**
- * O painel reúne custo de contratos e de impressoras. Sem leitura nos dois ele
- * mostraria metade dos números como se fosse o total, então exige os dois.
+ * O painel abre com a aba de contratos, mas quem só tem leitura de impressoras
+ * também precisa alcançá-lo — a entrada aparece se qualquer uma das duas abas
+ * for visível.
  */
 function podeVerModulo(me: MeDTO | null, module: SidebarModule): boolean {
   if (module === 'dashboard') {
-    return canSee(me, 'FINANCIAL') && canSee(me, 'PRINTER');
+    return canSee(me, 'FINANCIAL') || canSee(me, 'PRINTER');
   }
   return canSee(me, MODULE_PERMISSION[module]);
 }
@@ -147,6 +150,14 @@ function App() {
 
   // Impressoras: o fechamento do mês e o cadastro dividem a mesma tela.
   const [printerTab, setPrinterTab] = useState<'closing' | 'registry' | 'prices'>('closing');
+  const [dashboardTab, setDashboardTab] = useState<'contracts' | 'printers'>('contracts');
+
+  // A aba escolhida vale só se a permissão permitir. Quem lê apenas impressoras
+  // abre o painel direto na aba de impressão, em vez de numa tela vazia.
+  const abaDoPainel: 'contracts' | 'printers' =
+    !canSee(me, 'FINANCIAL') ? 'printers'
+    : !canSee(me, 'PRINTER') ? 'contracts'
+    : dashboardTab;
   const [editingPrinter, setEditingPrinter] = useState<PrinterDTO | null>(null);
   const [editingReading, setEditingReading] = useState<ReadingDTO | null>(null);
   const [printerReloadToken, setPrinterReloadToken] = useState(0);
@@ -307,7 +318,9 @@ function App() {
     if (activeModule === 'stock') return 'Gestão de estoque';
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
-    if (activeModule === 'dashboard') return 'Painel de custos';
+    if (activeModule === 'dashboard') {
+      return abaDoPainel === 'contracts' ? 'Custo dos contratos' : 'Impressão por setor';
+    }
     if (activeModule === 'printers') {
       if (printerTab === 'closing') return 'Fechamento de impressoras';
       if (printerTab === 'prices') return 'Preços e condições';
@@ -334,7 +347,9 @@ function App() {
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
     if (activeModule === 'dashboard') {
-      return 'Evolução do gasto, custo por empresa e por centro de custo.';
+      return abaDoPainel === 'contracts'
+        ? 'Gasto do ano, evolução mensal e valor por categoria de serviço.'
+        : 'Páginas por empresa, custo da impressão e rateio por centro de custo.';
     }
     if (activeModule === 'printers') {
       if (printerTab === 'closing') {
@@ -465,7 +480,7 @@ function App() {
     }
 
     if (activeModule === 'dashboard') {
-      return <Dashboard />;
+      return abaDoPainel === 'contracts' ? <ContractsDashboard /> : <PrintersDashboard />;
     }
 
     if (activeModule === 'printers') {
@@ -569,10 +584,34 @@ function App() {
   };
 
   const renderModuleActions = () => {
-    // O painel tem o próprio filtro de mês dentro do card, então não usa a barra
-    // de ações; sem este retorno ele herdava os botões do bloco padrão.
-    if (activeModule === 'welcome' || activeModule === 'dashboard') {
+    // Sem este retorno a tela de boas-vindas herdava os botões do bloco padrão.
+    if (activeModule === 'welcome') {
       return null;
+    }
+
+    // O painel usa a barra só para trocar de aba: o filtro de mês vive dentro do
+    // próprio card, junto dos gráficos a que ele se aplica.
+    if (activeModule === 'dashboard') {
+      return (
+        <nav className="header-actions" aria-label="Painéis">
+          {canSee(me, 'FINANCIAL') && (
+            <button
+              className={`header-action ${abaDoPainel === 'contracts' ? 'is-active' : ''}`}
+              onClick={() => setDashboardTab('contracts')}
+            >
+              Contratos
+            </button>
+          )}
+          {canSee(me, 'PRINTER') && (
+            <button
+              className={`header-action ${abaDoPainel === 'printers' ? 'is-active' : ''}`}
+              onClick={() => setDashboardTab('printers')}
+            >
+              Impressão
+            </button>
+          )}
+        </nav>
+      );
     }
 
     if (activeModule === 'printers') {

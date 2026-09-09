@@ -24,7 +24,7 @@ public record InvoiceResponseDTO(
     public record ApportionmentItemResponseDTO(
             UUID sectorId,
             String sectorName,
-            Integer costCenterCode,
+            String costCenterCode,
             BigDecimal allocation,
             BigDecimal percentage
     ) {}

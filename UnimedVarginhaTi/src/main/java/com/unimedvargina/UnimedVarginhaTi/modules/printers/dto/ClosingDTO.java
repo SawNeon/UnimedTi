@@ -40,7 +40,16 @@ public record ClosingDTO(
     public record SectorTotalDTO(
             UUID sectorId,
             String sectorName,
-            Integer costCenterCode,
+            String costCenterCode,
+            /** Codigo do setor no Piramide, que e o que o Financeiro lanca. */
+            String pyramidCode,
+            /**
+             * Empresa dona do centro de custo. Cada CNPJ tem a propria tabela: o
+             * codigo de centro de custo so e unico dentro da empresa, e juntar as
+             * duas numa lista so faria dois setores diferentes parecerem o mesmo.
+             */
+            UUID enterpriseId,
+            String enterpriseName,
             /** Paginas ja proporcionais ao percentual do setor em cada impressora. */
             BigDecimal blackPages,
             BigDecimal colorPages,

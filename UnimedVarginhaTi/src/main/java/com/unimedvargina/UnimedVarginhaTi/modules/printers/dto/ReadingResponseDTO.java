@@ -39,7 +39,7 @@ public record ReadingResponseDTO(
         String notes,
         List<ShareDTO> shares
 ) {
-    public record ShareDTO(UUID sectorId, String sectorName, Integer costCenterCode, BigDecimal percentage) {}
+    public record ShareDTO(UUID sectorId, String sectorName, String costCenterCode, BigDecimal percentage) {}
 
     public static ReadingResponseDTO from(PrinterReading r) {
         List<ShareDTO> shares = r.getShares().stream()

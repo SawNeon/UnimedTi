@@ -50,7 +50,7 @@ export function SectorList({ onEdit, canOperate, reloadToken }: SectorListProps)
   };
 
   const filtered = sectors.filter(s =>
-    `${s.name} ${s.groupName} ${s.costCenterCode} ${s.enterpriseName ?? ''}`
+    `${s.name} ${s.groupName} ${s.costCenterCode} ${s.pyramidCode ?? ''} ${s.enterpriseName ?? ''}`
       .toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -106,6 +106,13 @@ export function SectorList({ onEdit, canOperate, reloadToken }: SectorListProps)
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <span className={styles.profileTag}>{sector.costCenterCode}</span>
+                      {sector.pyramidCode && sector.pyramidCode !== sector.costCenterCode && (
+                        <span className={styles.profileTag}
+                              style={{ marginLeft: 4 }}
+                              title="Código no Pirâmide">
+                          pir {sector.pyramidCode}
+                        </span>
+                      )}
                     </td>
                     <td style={{ color: '#666' }}>{sector.groupName}</td>
                     <td>

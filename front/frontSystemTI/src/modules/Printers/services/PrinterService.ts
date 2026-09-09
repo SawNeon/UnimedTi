@@ -45,6 +45,30 @@ export const PrinterService = {
   closing: async (competence: string): Promise<ClosingDTO> =>
     (await api.get('/printers/closing', { params: { competence } })).data,
 
+  /**
+   * Baixa o PDF do rateio de uma empresa.
+   *
+   * Vai por axios e não por um link direto: o endpoint exige o cabeçalho de
+   * autorização, que uma navegação do browser não carrega.
+   */
+  closingPdf: async (competence: string, enterpriseId: string): Promise<void> => {
+    const resposta = await api.get('/printers/closing/pdf', {
+      params: { competence, enterpriseId },
+      responseType: 'blob'
+    });
+
+    const nome = /filename="?([^";]+)"?/
+      .exec(resposta.headers['content-disposition'] ?? '')?.[1]
+      ?? `rateio-impressoras-${competence.slice(0, 7)}.pdf`;
+
+    const url = URL.createObjectURL(resposta.data as Blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nome;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
+
   prices: async (): Promise<PriceDTO[]> => (await api.get('/printers/prices')).data,
 
   /** Grava a vigência do mês informado; meses anteriores seguem no preço antigo. */

@@ -444,9 +444,11 @@ select:focus-visible {
 /*
  * Paleta dos gráficos.
  *
- * Os dois tons categóricos passaram no validador nos dois modos: separação CVD
- * ΔE 24,7 no claro e 26,8 no escuro, contra alvo de 8. Os passos escuros são
- * escolhidos para a superfície escura, não um clareamento automático dos claros.
+ * Os três tons categóricos passaram no validador nos dois modos: o pior par
+ * adjacente ficou em ΔE 21,4 no claro e 23,0 no escuro, contra alvo de 8. Os
+ * passos escuros são escolhidos para a superfície escura, não um clareamento
+ * automático dos claros. São três porque o painel de impressoras compara
+ * empresa por empresa, e hoje são três CNPJs.
  */
 .viz-root {
   --viz-surface: #ffffff;
@@ -455,6 +457,7 @@ select:focus-visible {
   --viz-ink-muted: var(--color-text-muted);
   --viz-series-1: #2a78d6;
   --viz-series-2: #eb6834;
+  --viz-series-3: #7a5ea8;
   /* Sequencial de um tom para magnitude: o verde da marca, claro -> escuro. */
   --viz-seq-1: #cfe3dc;
   --viz-seq-2: #8fc3b1;
@@ -469,6 +472,7 @@ select:focus-visible {
     --viz-grid: #333836;
     --viz-series-1: #3987e5;
     --viz-series-2: #d95926;
+    --viz-series-3: #9b7fd4;
   }
 }
 
@@ -477,4 +481,5 @@ select:focus-visible {
   --viz-grid: #333836;
   --viz-series-1: #3987e5;
   --viz-series-2: #d95926;
+  --viz-series-3: #9b7fd4;
 }
