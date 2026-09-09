@@ -194,14 +194,13 @@ public class PrinterReadingService {
     /**
      * Substitui o rateio do mes. Vazio deixa a impressora sem rateio -- o caso da
      * reserva antes de ser usada. Preenchido, a soma tem de fechar 100.
+     *
+     * <p>As linhas que continuam sao ATUALIZADAS no lugar, em vez de apagadas e
+     * reinseridas. Limpar a colecao e adicionar de novo fazia o Hibernate emitir o
+     * INSERT antes do DELETE no mesmo flush, esbarrando na chave unica
+     * (leitura, setor).
      */
     private void aplicarRateio(PrinterReading reading, List<ReadingUpdateDTO.ShareDTO> shares) {
-        reading.getShares().clear();
-
-        if (shares.isEmpty()) {
-            return;
-        }
-
         Set<UUID> vistos = new HashSet<>();
         BigDecimal total = BigDecimal.ZERO;
 
@@ -209,18 +208,31 @@ public class PrinterReadingService {
             if (!vistos.add(item.sectorId())) {
                 throw new BusinessRuleException("O mesmo setor aparece mais de uma vez no rateio.");
             }
-
-            Sector sector = sectorRepository.findById(item.sectorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Setor", item.sectorId()));
-
-            reading.getShares().add(new PrinterReadingShare(reading, sector, item.percentage()));
             total = total.add(item.percentage());
         }
 
-        if (total.compareTo(CEM) != 0) {
+        if (!shares.isEmpty() && total.compareTo(CEM) != 0) {
             throw new BusinessRuleException(
                     "A soma do rateio é %s%%, e precisa ser 100%%."
                             .formatted(total.stripTrailingZeros().toPlainString()));
+        }
+
+        // Fora do novo conjunto: sai.
+        reading.getShares().removeIf(existente -> !vistos.contains(existente.getSector().getId()));
+
+        for (ReadingUpdateDTO.ShareDTO item : shares) {
+            Optional<PrinterReadingShare> atual = reading.getShares().stream()
+                    .filter(existente -> existente.getSector().getId().equals(item.sectorId()))
+                    .findFirst();
+
+            if (atual.isPresent()) {
+                atual.get().setPercentage(item.percentage());
+                continue;
+            }
+
+            Sector sector = sectorRepository.findById(item.sectorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Setor", item.sectorId()));
+            reading.getShares().add(new PrinterReadingShare(reading, sector, item.percentage()));
         }
     }
 

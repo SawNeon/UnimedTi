@@ -130,31 +130,42 @@ public class PrinterService {
      * tem de fechar 100.
      */
     private void applyShares(Printer printer, List<PrinterRequestDTO.ShareDTO> shares) {
-        printer.getShares().clear();
-
-        if (shares == null || shares.isEmpty()) {
-            return;
-        }
+        List<PrinterRequestDTO.ShareDTO> entrada = shares == null ? List.of() : shares;
 
         Set<UUID> vistos = new HashSet<>();
         BigDecimal total = BigDecimal.ZERO;
 
-        for (PrinterRequestDTO.ShareDTO item : shares) {
+        for (PrinterRequestDTO.ShareDTO item : entrada) {
             if (!vistos.add(item.sectorId())) {
                 throw new BusinessRuleException("O mesmo setor aparece mais de uma vez no rateio.");
+            }
+            total = total.add(item.percentage());
+        }
+
+        if (!entrada.isEmpty() && total.compareTo(CEM) != 0) {
+            throw new BusinessRuleException(
+                    "A soma do rateio da impressora é %s%%, e precisa ser 100%%."
+                            .formatted(total.stripTrailingZeros().toPlainString()));
+        }
+
+        // Atualiza no lugar em vez de limpar e reinserir: limpar fazia o Hibernate
+        // emitir o INSERT antes do DELETE no mesmo flush, esbarrando na chave unica
+        // (impressora, setor).
+        printer.getShares().removeIf(existente -> !vistos.contains(existente.getSector().getId()));
+
+        for (PrinterRequestDTO.ShareDTO item : entrada) {
+            java.util.Optional<PrinterSectorShare> atual = printer.getShares().stream()
+                    .filter(existente -> existente.getSector().getId().equals(item.sectorId()))
+                    .findFirst();
+
+            if (atual.isPresent()) {
+                atual.get().setPercentage(item.percentage());
+                continue;
             }
 
             Sector sector = sectorRepository.findById(item.sectorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Setor", item.sectorId()));
-
             printer.getShares().add(new PrinterSectorShare(printer, sector, item.percentage()));
-            total = total.add(item.percentage());
-        }
-
-        if (total.compareTo(CEM) != 0) {
-            throw new BusinessRuleException(
-                    "A soma do rateio da impressora é %s%%, e precisa ser 100%%."
-                            .formatted(total.stripTrailingZeros().toPlainString()));
         }
     }
 

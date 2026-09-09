@@ -27,7 +27,8 @@ import {
   ShoppingCart,
   InvoiceIcon,
   UsersThree,
-  Buildings
+  Buildings,
+  Printer as PrinterIcon
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
@@ -43,9 +44,15 @@ import { EnterpriseForm } from './modules/Registry/pages/EnterpriseForm';
 import { SectorList } from './modules/Registry/pages/SectorList';
 import { SectorForm } from './modules/Registry/pages/SectorForm';
 import type { EnterpriseDTO, SectorDTO } from './shared/types/Registry';
+import { SectorService } from './modules/Registry/services/RegistryService';
+import { PrinterClosing } from './modules/Printers/pages/PrinterClosing';
+import { PrinterList } from './modules/Printers/pages/PrinterList';
+import { PrinterForm } from './modules/Printers/pages/PrinterForm';
+import { ReadingForm } from './modules/Printers/pages/ReadingForm';
+import type { PrinterDTO, ReadingDTO } from './shared/types/Printer';
 import { Login } from './modules/Auth/pages/Login';
 
-type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'users' | 'registry';
+type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial' | 'printers' | 'users' | 'registry';
 
 /** Cada modulo de tela corresponde a um modulo de permissao do backend. */
 const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
@@ -53,6 +60,7 @@ const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
   asset: 'ASSET',
   order: 'ORDER',
   financial: 'FINANCIAL',
+  printers: 'PRINTER',
   users: 'USER_MANAGEMENT',
   // Empresas e setores sao configuracao do sistema, entao seguem a mesma
   // permissao da gestao de usuarios.
@@ -69,7 +77,8 @@ const OPERATION_MODULES: NavItem[] = [
   { module: 'stock', label: 'Estoque', icon: Package },
   { module: 'asset', label: 'Ativos', icon: Desktop },
   { module: 'order', label: 'Pedidos', icon: ShoppingCart },
-  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon }
+  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon },
+  { module: 'printers', label: 'Impressoras', icon: PrinterIcon }
 ];
 
 /**
@@ -86,6 +95,7 @@ const QUICK_CARD_HINT: Record<SidebarModule, string> = {
   asset: 'Patrimônio e empréstimos',
   order: 'Solicitações de compra',
   financial: 'Contratos e notas',
+  printers: 'Contagem e rateio',
   users: 'Acessos e perfis',
   registry: 'Empresas e setores'
 };
@@ -115,6 +125,14 @@ function App() {
   const [editingSector, setEditingSector] = useState<SectorDTO | null>(null);
   // Salvar uma empresa muda o nome exibido na lista de setores.
   const [registryReloadToken, setRegistryReloadToken] = useState(0);
+
+  // Impressoras: o fechamento do mês e o cadastro dividem a mesma tela.
+  const [printerTab, setPrinterTab] = useState<'closing' | 'registry'>('closing');
+  const [editingPrinter, setEditingPrinter] = useState<PrinterDTO | null>(null);
+  const [editingReading, setEditingReading] = useState<ReadingDTO | null>(null);
+  const [printerReloadToken, setPrinterReloadToken] = useState(0);
+  // Carregados aqui porque o rateio de leitura e o do cadastro usam a mesma lista.
+  const [sectorsForShares, setSectorsForShares] = useState<SectorDTO[]>([]);
 
   useEffect(() => {
     const sendToLogin = () => {
@@ -186,6 +204,28 @@ function App() {
 
   const activeUnitName = units.find(u => u.unitId === activeUnitId)?.unitName ?? '';
 
+  useEffect(() => {
+    if (activeModule !== 'printers') return;
+
+    SectorService.getAll()
+      .then(setSectorsForShares)
+      .catch((error) => console.error('Erro ao carregar setores:', error));
+  }, [activeModule]);
+
+  const handlePrinterTab = (tab: 'closing' | 'registry') => {
+    setPrinterTab(tab);
+    setActiveScreen('list');
+    setEditingPrinter(null);
+    setEditingReading(null);
+  };
+
+  const handlePrinterSaved = () => {
+    setEditingPrinter(null);
+    setEditingReading(null);
+    setPrinterReloadToken(token => token + 1);
+    setActiveScreen('list');
+  };
+
   const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
     setActiveScreen('list');
@@ -194,6 +234,8 @@ function App() {
     setEditingUser(null);
     setEditingEnterprise(null);
     setEditingSector(null);
+    setEditingPrinter(null);
+    setEditingReading(null);
   };
 
   /** Trocar de aba fecha o formulário: ele pertencia à outra entidade. */
@@ -246,6 +288,9 @@ function App() {
     if (activeModule === 'stock') return 'Gestão de estoque';
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
+    if (activeModule === 'printers') {
+      return printerTab === 'closing' ? 'Fechamento de impressoras' : 'Cadastro de impressoras';
+    }
     if (activeModule === 'users') return 'Gestão de usuários';
     if (activeModule === 'registry') {
       return registryTab === 'enterprises' ? 'Empresas' : 'Setores';
@@ -266,6 +311,11 @@ function App() {
     }
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
+    if (activeModule === 'printers') {
+      return printerTab === 'closing'
+        ? 'Contagem do mês, importação do PrintWay e custo por empresa e centro de custo.'
+        : 'O parque de impressoras e o rateio padrão de cada uma.';
+    }
     if (activeModule === 'users') {
       return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
     }
@@ -385,6 +435,40 @@ function App() {
       return <OrderList />;
     }
 
+    if (activeModule === 'printers') {
+      const podeFechar = canOperate(me, 'PRINTER');
+      const podeCadastrar = canOperate(me, 'USER_MANAGEMENT');
+
+      if (activeScreen === 'form') {
+        return editingReading
+          ? (
+            <ReadingForm
+              reading={editingReading}
+              sectors={sectorsForShares}
+              onSuccess={handlePrinterSaved}
+              onCancel={() => { setEditingReading(null); setActiveScreen('list'); }}
+            />
+          )
+          : <PrinterForm printerToEdit={editingPrinter} onSuccess={handlePrinterSaved} />;
+      }
+
+      return printerTab === 'closing'
+        ? (
+          <PrinterClosing
+            canOperate={podeFechar}
+            onEditReading={(reading) => { setEditingReading(reading); setActiveScreen('form'); }}
+            reloadToken={printerReloadToken}
+          />
+        )
+        : (
+          <PrinterList
+            onEdit={(printer) => { setEditingPrinter(printer); setActiveScreen('form'); }}
+            canOperate={podeCadastrar}
+            reloadToken={printerReloadToken}
+          />
+        );
+    }
+
     if (activeModule === 'registry') {
       const podeOperar = canOperate(me, 'USER_MANAGEMENT');
 
@@ -450,6 +534,39 @@ function App() {
   const renderModuleActions = () => {
     if (activeModule === 'welcome') {
       return null;
+    }
+
+    if (activeModule === 'printers') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de impressoras">
+          <button
+            className={`header-action ${printerTab === 'closing' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('closing')}
+          >
+            Fechamento
+          </button>
+
+          <button
+            className={`header-action ${printerTab === 'registry' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('registry')}
+          >
+            Impressoras
+          </button>
+
+          {printerTab === 'registry' && canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => {
+                setEditingPrinter(null);
+                setEditingReading(null);
+                setActiveScreen('form');
+              }}
+            >
+              + Nova impressora
+            </button>
+          )}
+        </nav>
+      );
     }
 
     if (activeModule === 'registry') {
