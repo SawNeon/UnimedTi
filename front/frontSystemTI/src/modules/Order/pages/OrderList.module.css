@@ -1,8 +1,6 @@
 
 .pageContainer {
-  background-color: #cde3bb;
-  min-height: 100vh;
-  padding: 40px 20px;
+  padding: 0;
   display: flex;
   justify-content: center;
   align-items: flex-start; 
@@ -57,8 +55,8 @@
 }
 
 .searchInput:focus {
-  border-color: #3a7d71;
-  box-shadow: 0 0 0 3px rgba(58, 125, 113, 0.1);
+  border-color: var(--color-brand-700);
+  box-shadow: 0 0 0 3px rgba(20, 101, 86, 0.14);
 }
 
 
@@ -73,26 +71,20 @@
 }
 
 .table th {
-  padding: 16px 24px;
+  padding: 14px 18px;
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid #e0e0e0;
-  cursor: pointer;
   transition: background 0.2s;
   
 
-  background-color: #3a7d71; 
+  background-color: var(--color-brand-700); 
   color: #ffffff;            
 }
 
-.table th:hover {
-  background-color: #2c5e55; 
-}
-
-
 .table td {
-  padding: 16px 24px;
+  padding: 14px 18px;
   border-bottom: 1px solid #f0f0f0;
   color: #444;
   font-size: 14px;
@@ -106,8 +98,8 @@
 .thumbPlaceholder {
   width: 36px;
   height: 36px;
-  background-color: #e0f2f1;
-  color: #3a7d71;          
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);          
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -154,12 +146,12 @@
 }
 
 .editBtn {
-  color: #3a7d71; 
-  background-color: #e0f2f1;
+  color: var(--color-brand-700); 
+  background-color: var(--color-brand-100);
 }
 
 .editBtn:hover {
-  background-color: #3a7d71;
+  background-color: var(--color-brand-700);
   color: white;
 }
 
@@ -279,7 +271,7 @@
 .confirmButton {
     flex: 1;
     padding: 10px;
-    background-color: #3a7d71;
+    background-color: var(--color-brand-700);
     color: white;
     border: none;
     border-radius: 4px;
@@ -315,8 +307,8 @@
 }
 
 .pageButton:hover:not(:disabled) {
-  border-color: #3a7d71;
-  color: #3a7d71;
+  border-color: var(--color-brand-700);
+  color: var(--color-brand-700);
   background-color: #f4f9f7;
 }
 

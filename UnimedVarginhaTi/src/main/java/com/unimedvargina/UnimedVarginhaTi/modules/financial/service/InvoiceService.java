@@ -4,6 +4,8 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceApportion
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceRequestDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.dto.InvoiceResponseDTO;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Apportionment;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.CostAllocationType;
+import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceDeliveryTarget;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Contract;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.Invoice;
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.model.InvoiceStatus;
@@ -11,10 +13,12 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.Apportion
 import com.unimedvargina.UnimedVarginhaTi.modules.financial.repository.InvoiceRepository;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
 import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
+import com.unimedvargina.UnimedVarginhaTi.shared.service.FileStorageService;
 import com.unimedvargina.UnimedVarginhaTi.shared.service.SectorService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,23 +45,53 @@ public class InvoiceService {
     @Autowired
     private SectorService sectorService;
 
+    @Autowired
+    private InvoiceDeliveryScheduler deliveryScheduler;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    /**
+     * A nota chega digitalizada ou em PDF. Restringir os tipos evita que o anexo
+     * vire deposito de qualquer arquivo -- e um .exe ali nao seria a nota fiscal.
+     */
+    private static final java.util.Set<String> EXTENSOES_ACEITAS =
+            java.util.Set.of("pdf", "png", "jpg", "jpeg");
+
     @Transactional
     public Invoice createInvoiceWithApportionment(InvoiceRequestDTO dto) {
         Contract contract = contractService.findById(dto.contractId());
 
+        LocalDate competence = YearMonth.from(dto.competence()).atDay(1);
+
         validateDates(dto);
-        validateApportionmentTotal(dto);
+        validateCostDestination(dto);
         validateNoDuplicatedSector(dto);
+        validateNotDuplicated(contract.getId(), competence);
 
         Invoice invoice = new Invoice();
         invoice.setContract(contract);
-        invoice.setNumber(dto.number());
+        invoice.setNumber(dto.number().trim());
+        invoice.setCompetence(competence);
         invoice.setAmount(dto.totalAmount());
         invoice.setIssueDate(dto.issueDate());
         invoice.setDueDate(dto.dueDate());
         invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setCostAllocation(dto.costAllocation());
+        invoice.setDeliveryTarget(dto.deliveryTarget() == null
+                ? InvoiceDeliveryTarget.SUPORTE_ADM
+                : dto.deliveryTarget());
+        invoice.setDeliveryDeadline(dto.deliveryDeadline() == null
+                ? deliveryScheduler.deliveryDeadline(dto.dueDate())
+                : dto.deliveryDeadline());
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
+
+        // Custo integral do CNPJ: nao ha itens de rateio a gravar. O dono do custo
+        // e a empresa do contrato.
+        if (dto.costAllocation() == CostAllocationType.ENTERPRISE) {
+            return savedInvoice;
+        }
 
         List<Apportionment> apportionments = dto.items().stream()
                 .map(item -> {
@@ -76,11 +110,42 @@ public class InvoiceService {
     }
 
     /**
-     * Garante que a soma do rateio feche exatamente com o valor da fatura.
+     * Toda nota tem destino de custo, e o destino define o que é exigido.
      *
-     * <p>Esta é a regra que a planilha não conseguia impor: sem ela o total rateado
-     * pelos centros de custo pode divergir do que foi efetivamente faturado.
+     * <p>Com rateio, a soma dos itens tem de fechar exatamente com o valor da nota
+     * — regra que a planilha não conseguia impor. Sem rateio, o custo é integral da
+     * empresa do contrato, e itens de rateio ali seriam contradição: o mesmo valor
+     * apareceria como custo do CNPJ e como custo dos centros.
      */
+    private void validateCostDestination(InvoiceRequestDTO dto) {
+        boolean hasItems = dto.items() != null && !dto.items().isEmpty();
+
+        if (dto.costAllocation() == CostAllocationType.ENTERPRISE) {
+            if (hasItems) {
+                throw new BusinessRuleException(
+                        "A nota foi marcada como custo integral do CNPJ, então não pode ter rateio por centro de custo.");
+            }
+            return;
+        }
+
+        if (!hasItems) {
+            throw new BusinessRuleException(
+                    "Informe o rateio por centro de custo, ou marque a nota como custo integral do CNPJ.");
+        }
+
+        validateApportionmentTotal(dto);
+    }
+
+    /** Um contrato gera uma nota por mês: a segunda no mesmo mês é lançamento repetido. */
+    private void validateNotDuplicated(UUID contractId, LocalDate competence) {
+        invoiceRepository.findByContractIdAndCompetence(contractId, competence)
+                .ifPresent(existing -> {
+                    throw new BusinessRuleException(
+                            "Já existe a nota %s lançada para este contrato na competência %s."
+                                    .formatted(existing.getNumber(), YearMonth.from(competence)));
+                });
+    }
+
     private void validateApportionmentTotal(InvoiceRequestDTO dto) {
         BigDecimal allocated = dto.items().stream()
                 .map(InvoiceRequestDTO.ApportionmentItemDTO::allocation)
@@ -97,6 +162,9 @@ public class InvoiceService {
     }
 
     private void validateNoDuplicatedSector(InvoiceRequestDTO dto) {
+        if (dto.items() == null) {
+            return;
+        }
         Set<UUID> sectors = new HashSet<>();
         dto.items().stream()
                 .map(InvoiceRequestDTO.ApportionmentItemDTO::sectorId)
@@ -113,6 +181,58 @@ public class InvoiceService {
             throw new BusinessRuleException(
                     "A data de vencimento não pode ser anterior à data de emissão.");
         }
+    }
+
+    /**
+     * Registra a entrega da nota. A data e informada porque a entrega costuma ser
+     * lancada depois do fato -- forcar "hoje" gravaria a data errada.
+     */
+    @Transactional
+    public InvoiceResponseDTO markAsDelivered(UUID id, LocalDate deliveredAt) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fatura", id));
+
+        if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
+            throw new BusinessRuleException("Não é possível entregar uma nota cancelada.");
+        }
+        if (deliveredAt.isBefore(invoice.getIssueDate())) {
+            throw new BusinessRuleException(
+                    "A data de entrega não pode ser anterior à emissão da nota.");
+        }
+
+        invoice.setDeliveredAt(deliveredAt);
+        invoice.setStatus(InvoiceStatus.DELIVERED);
+        invoiceRepository.save(invoice);
+
+        return findByIdWithApportionments(id);
+    }
+
+    /**
+     * Anexa o arquivo da nota. Reenviar substitui o anterior: e o caso normal de
+     * quem anexou a nota errada ou recebeu uma versao corrigida do fornecedor.
+     */
+    @Transactional
+    public InvoiceResponseDTO attachFile(UUID id, MultipartFile file) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fatura", id));
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessRuleException("Selecione o arquivo da nota.");
+        }
+
+        String nome = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+        int ponto = nome.lastIndexOf('.');
+        String extensao = ponto < 0 ? "" : nome.substring(ponto + 1).toLowerCase();
+
+        if (!EXTENSOES_ACEITAS.contains(extensao)) {
+            throw new BusinessRuleException(
+                    "Formato não aceito para a nota. Envie PDF, PNG ou JPG.");
+        }
+
+        invoice.setAttachmentPath(fileStorageService.storeFile(file, "invoices"));
+        invoiceRepository.save(invoice);
+
+        return findByIdWithApportionments(id);
     }
 
     public InvoiceResponseDTO findByIdWithApportionments(UUID id) {
@@ -155,6 +275,7 @@ public class InvoiceService {
                 invoice.getStatus(),
                 invoice.getContract().getServiceDescription(),
                 invoice.getContract().getServiceType(),
+                invoice.getAttachmentPath(),
                 items
         );
     }
@@ -163,11 +284,9 @@ public class InvoiceService {
             UUID contractId,
             LocalDate referenceDate
     ) {
-        YearMonth previousMonth = YearMonth.from(referenceDate).minusMonths(1);
-        LocalDate startDate = previousMonth.atDay(1);
-        LocalDate endDate = previousMonth.atEndOfMonth();
+        LocalDate previousCompetence = YearMonth.from(referenceDate).minusMonths(1).atDay(1);
 
-        return invoiceRepository.findByContractIdAndMonthRange(contractId, startDate, endDate)
+        return invoiceRepository.findByContractIdAndCompetence(contractId, previousCompetence)
                 .map(invoice -> {
                     BigDecimal totalAmount = invoice.getAmount();
 

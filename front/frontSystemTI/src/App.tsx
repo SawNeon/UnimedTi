@@ -4,6 +4,7 @@ import './index.css';
 import { ProductForm } from './modules/Stock/pages/ProductForm';
 import { ProductList } from './modules/Stock/pages/ProductList';
 import { ProductMovement } from './modules/Stock/pages/ProductMovement';
+import { ProductTransfer } from './modules/Stock/pages/ProductTransfer';
 import type { ProductDTO } from './modules/Stock/types/Product';
 
 import { AssetForm } from './modules/Asset/pages/AssetForm';
@@ -24,15 +25,99 @@ import {
   House,
   SignOut,
   ShoppingCart,
-  InvoiceIcon
+  InvoiceIcon,
+  UsersThree,
+  Buildings,
+  Printer as PrinterIcon,
+  ChartLine
 } from '@phosphor-icons/react';
 
 import { AuthService } from './shared/services/authService';
 import { AUTH_REQUIRED_EVENT, AUTH_TOKEN_KEY } from './shared/services/authSession';
+import { getSelectedUnitId, setSelectedUnitId } from './shared/services/unitSession';
+import { MeService } from './shared/services/meService';
+import { accessibleUnits, canOperate, canOperateAllUnits, canSee } from './shared/types/Access';
+import type { MeDTO, ModuleKey, UnitAccess, UserDTO } from './shared/types/Access';
+import { UserList } from './modules/Users/pages/UserList';
+import { UserForm } from './modules/Users/pages/UserForm';
+import { EnterpriseList } from './modules/Registry/pages/EnterpriseList';
+import { EnterpriseForm } from './modules/Registry/pages/EnterpriseForm';
+import { SectorList } from './modules/Registry/pages/SectorList';
+import { SectorForm } from './modules/Registry/pages/SectorForm';
+import type { EnterpriseDTO, SectorDTO } from './shared/types/Registry';
+import { SectorService } from './modules/Registry/services/RegistryService';
+import { PrinterClosing } from './modules/Printers/pages/PrinterClosing';
+import { PrinterList } from './modules/Printers/pages/PrinterList';
+import { PrinterForm } from './modules/Printers/pages/PrinterForm';
+import { ReadingForm } from './modules/Printers/pages/ReadingForm';
+import { PriceSettings } from './modules/Printers/pages/PriceSettings';
+import type { PrinterDTO, ReadingDTO } from './shared/types/Printer';
+import { Dashboard } from './modules/Dashboard/pages/Dashboard';
 import { Login } from './modules/Auth/pages/Login';
 
-type ActiveModule = 'welcome' | 'stock' | 'asset' | 'order' | 'financial';
-type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters';
+type ActiveModule = 'welcome' | 'dashboard' | 'stock' | 'asset' | 'order' | 'financial' | 'printers' | 'users' | 'registry';
+
+/** Cada modulo de tela corresponde a um modulo de permissao do backend. */
+const MODULE_PERMISSION: Record<Exclude<ActiveModule, 'welcome'>, ModuleKey> = {
+  // O painel soma contratos e impressoras; a regra real está em podeVerModulo,
+  // porque ele exige leitura NOS DOIS e este mapa só comporta um.
+  dashboard: 'FINANCIAL',
+  stock: 'STOCK',
+  asset: 'ASSET',
+  order: 'ORDER',
+  financial: 'FINANCIAL',
+  printers: 'PRINTER',
+  users: 'USER_MANAGEMENT',
+  // Empresas e setores sao configuracao do sistema, entao seguem a mesma
+  // permissao da gestao de usuarios.
+  registry: 'USER_MANAGEMENT'
+};
+type ActiveScreen = 'list' | 'form' | 'movement' | 'costCenters' | 'transfer';
+
+type SidebarModule = Exclude<ActiveModule, 'welcome'>;
+
+type NavItem = { module: SidebarModule; label: string; icon: typeof Package };
+
+/** Módulos da rotina diária — ocupam o corpo do menu. */
+const OPERATION_MODULES: NavItem[] = [
+  { module: 'dashboard', label: 'Painel', icon: ChartLine },
+  { module: 'stock', label: 'Estoque', icon: Package },
+  { module: 'asset', label: 'Ativos', icon: Desktop },
+  { module: 'order', label: 'Pedidos', icon: ShoppingCart },
+  { module: 'financial', label: 'Financeiro', icon: InvoiceIcon },
+  { module: 'printers', label: 'Impressoras', icon: PrinterIcon }
+];
+
+/**
+ * Administração — fica no rodapé, junto do Sair. É função de manutenção, não de
+ * rotina: misturá-la aos módulos operacionais dá a ela um peso que não tem.
+ */
+const ADMIN_MODULES: NavItem[] = [
+  { module: 'registry', label: 'Cadastros', icon: Buildings },
+  { module: 'users', label: 'Usuários', icon: UsersThree }
+];
+
+const QUICK_CARD_HINT: Record<SidebarModule, string> = {
+  dashboard: 'Custos e indicadores',
+  stock: 'Produtos e movimentações',
+  asset: 'Patrimônio e empréstimos',
+  order: 'Solicitações de compra',
+  financial: 'Contratos e notas',
+  printers: 'Contagem e rateio',
+  users: 'Acessos e perfis',
+  registry: 'Empresas e setores'
+};
+
+/**
+ * O painel reúne custo de contratos e de impressoras. Sem leitura nos dois ele
+ * mostraria metade dos números como se fosse o total, então exige os dois.
+ */
+function podeVerModulo(me: MeDTO | null, module: SidebarModule): boolean {
+  if (module === 'dashboard') {
+    return canSee(me, 'FINANCIAL') && canSee(me, 'PRINTER');
+  }
+  return canSee(me, MODULE_PERMISSION[module]);
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -43,6 +128,30 @@ function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('list');
   const [editingItem, setEditingItem] = useState<ProductDTO | AssetDTO | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+  // Unidade operacional: Operadora ou Hospital. Define QUAL estoque está em tela.
+  const [units, setUnits] = useState<UnitAccess[]>([]);
+  const [activeUnitId, setActiveUnitId] = useState<string>('');
+
+  // Perfil e alcance do usuário logado. É daqui que sai o menu — mas quem recusa
+  // a operação é o @PreAuthorize no backend, não esta tela.
+  const [me, setMe] = useState<MeDTO | null>(null);
+  const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
+
+  // Cadastros: empresas e setores dividem a mesma tela, alternadas pela aba.
+  const [registryTab, setRegistryTab] = useState<'enterprises' | 'sectors'>('enterprises');
+  const [editingEnterprise, setEditingEnterprise] = useState<EnterpriseDTO | null>(null);
+  const [editingSector, setEditingSector] = useState<SectorDTO | null>(null);
+  // Salvar uma empresa muda o nome exibido na lista de setores.
+  const [registryReloadToken, setRegistryReloadToken] = useState(0);
+
+  // Impressoras: o fechamento do mês e o cadastro dividem a mesma tela.
+  const [printerTab, setPrinterTab] = useState<'closing' | 'registry' | 'prices'>('closing');
+  const [editingPrinter, setEditingPrinter] = useState<PrinterDTO | null>(null);
+  const [editingReading, setEditingReading] = useState<ReadingDTO | null>(null);
+  const [printerReloadToken, setPrinterReloadToken] = useState(0);
+  // Carregados aqui porque o rateio de leitura e o do cadastro usam a mesma lista.
+  const [sectorsForShares, setSectorsForShares] = useState<SectorDTO[]>([]);
 
   useEffect(() => {
     const sendToLogin = () => {
@@ -72,11 +181,95 @@ function App() {
     };
   }, []);
 
+  // O alcance vem do backend em /users/me: o menu mostra só o que a pessoa
+  // realmente acessa, e o seletor só as unidades que ela opera.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    MeService.get()
+      .then((data) => {
+        if (cancelled) return;
+        setMe(data);
+
+        const allowed = accessibleUnits(data, 'STOCK');
+        setUnits(allowed);
+
+        const stored = getSelectedUnitId();
+        const valid = allowed.find(u => u.unitId === stored) ?? allowed[0];
+        if (valid) {
+          setActiveUnitId(valid.unitId);
+          setSelectedUnitId(valid.unitId);
+        } else {
+          setActiveUnitId('');
+        }
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar o perfil do usuário:', error);
+      });
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
+
+  const handleChangeUnit = (unitId: string) => {
+    setActiveUnitId(unitId);
+    setSelectedUnitId(unitId);
+    // Trocar de estoque volta para a lista: um formulário aberto pertencia ao
+    // estoque anterior e salvá-lo na nova unidade seria um engano silencioso.
+    setActiveScreen('list');
+    setEditingItem(null);
+  };
+
+  const activeUnitName = units.find(u => u.unitId === activeUnitId)?.unitName ?? '';
+
+  useEffect(() => {
+    if (activeModule !== 'printers') return;
+
+    SectorService.getAll()
+      .then(setSectorsForShares)
+      .catch((error) => console.error('Erro ao carregar setores:', error));
+  }, [activeModule]);
+
+  const handlePrinterTab = (tab: 'closing' | 'registry' | 'prices') => {
+    setPrinterTab(tab);
+    setActiveScreen('list');
+    setEditingPrinter(null);
+    setEditingReading(null);
+  };
+
+  const handlePrinterSaved = () => {
+    setEditingPrinter(null);
+    setEditingReading(null);
+    setPrinterReloadToken(token => token + 1);
+    setActiveScreen('list');
+  };
+
   const handleSelectModule = (module: ActiveModule) => {
     setActiveModule(module);
     setActiveScreen('list');
     setEditingItem(null);
     setSelectedInvoiceId(null);
+    setEditingUser(null);
+    setEditingEnterprise(null);
+    setEditingSector(null);
+    setEditingPrinter(null);
+    setEditingReading(null);
+  };
+
+  /** Trocar de aba fecha o formulário: ele pertencia à outra entidade. */
+  const handleRegistryTab = (tab: 'enterprises' | 'sectors') => {
+    setRegistryTab(tab);
+    setActiveScreen('list');
+    setEditingEnterprise(null);
+    setEditingSector(null);
+  };
+
+  const handleRegistrySaved = () => {
+    setEditingEnterprise(null);
+    setEditingSector(null);
+    setRegistryReloadToken(token => token + 1);
+    setActiveScreen('list');
   };
 
   const handleEdit = (item: ProductDTO | AssetDTO) => {
@@ -114,6 +307,16 @@ function App() {
     if (activeModule === 'stock') return 'Gestão de estoque';
     if (activeModule === 'asset') return 'Gestão de ativos';
     if (activeModule === 'order') return 'Pedidos de compras';
+    if (activeModule === 'dashboard') return 'Painel de custos';
+    if (activeModule === 'printers') {
+      if (printerTab === 'closing') return 'Fechamento de impressoras';
+      if (printerTab === 'prices') return 'Preços e condições';
+      return 'Cadastro de impressoras';
+    }
+    if (activeModule === 'users') return 'Gestão de usuários';
+    if (activeModule === 'registry') {
+      return registryTab === 'enterprises' ? 'Empresas' : 'Setores';
+    }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Centros de custo';
     }
@@ -123,9 +326,33 @@ function App() {
 
   const getPageDescription = () => {
     if (activeModule === 'welcome') return 'Escolha um módulo para começar sua rotina.';
-    if (activeModule === 'stock') return 'Produtos, saldos mínimos e movimentações de estoque.';
+    if (activeModule === 'stock') {
+      return activeUnitName
+        ? `Produtos, saldos mínimos e movimentações do estoque ${activeUnitName}.`
+        : 'Produtos, saldos mínimos e movimentações de estoque.';
+    }
     if (activeModule === 'asset') return 'Controle de patrimônio, disponibilidade e empréstimos.';
     if (activeModule === 'order') return 'Solicitações, anexos e acompanhamento de compras.';
+    if (activeModule === 'dashboard') {
+      return 'Evolução do gasto, custo por empresa e por centro de custo.';
+    }
+    if (activeModule === 'printers') {
+      if (printerTab === 'closing') {
+        return 'Contagem do mês, importação do PrintWay e custo por empresa e centro de custo.';
+      }
+      if (printerTab === 'prices') {
+        return 'Preço da página e franquia por empresa, válidos a partir de um mês.';
+      }
+      return 'O parque de impressoras e o rateio padrão de cada uma.';
+    }
+    if (activeModule === 'users') {
+      return 'Quem acessa o sistema, com qual perfil e em quais unidades.';
+    }
+    if (activeModule === 'registry') {
+      return registryTab === 'enterprises'
+        ? 'Os CNPJs do grupo. Contrato e nota fiscal pertencem a um deles.'
+        : 'Os centros de custo usados no rateio e no destino do consumo.';
+    }
     if (activeModule === 'financial' && activeScreen === 'costCenters') {
       return 'Distribuição da nota por áreas e centros de custo.';
     }
@@ -147,49 +374,69 @@ function App() {
           </div>
 
           <div className="quick-grid" aria-label="Acesso rápido aos módulos">
-            <button className="quick-card" onClick={() => handleSelectModule('stock')}>
-              <Package size={28} weight="duotone" />
-              <strong>Estoque</strong>
-              <span>Produtos e movimentações</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('asset')}>
-              <Desktop size={28} weight="duotone" />
-              <strong>Ativos</strong>
-              <span>Patrimônio e empréstimos</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('order')}>
-              <ShoppingCart size={28} weight="duotone" />
-              <strong>Pedidos</strong>
-              <span>Solicitações de compra</span>
-            </button>
-
-            <button className="quick-card" onClick={() => handleSelectModule('financial')}>
-              <InvoiceIcon size={28} weight="duotone" />
-              <strong>Financeiro</strong>
-              <span>Contratos e notas</span>
-            </button>
+            {OPERATION_MODULES
+              .filter(item => podeVerModulo(me, item.module))
+              .map(item => (
+                <button
+                  key={item.module}
+                  className="quick-card"
+                  onClick={() => handleSelectModule(item.module)}
+                >
+                  <item.icon size={28} weight="duotone" />
+                  <strong>{item.label}</strong>
+                  <span>{QUICK_CARD_HINT[item.module]}</span>
+                </button>
+              ))}
           </div>
         </section>
       );
     }
 
     if (activeModule === 'stock') {
+      // Sem unidade resolvida não há "o estoque" — evita chamar a API sem unitId
+      // e receber 400 na cara do operador.
+      if (!activeUnitId) {
+        return <p style={{ padding: 20 }}>Carregando unidades...</p>;
+      }
+
       if (activeScreen === 'form') {
         return (
           <ProductForm
             productToEdit={editingItem as ProductDTO | null}
             onSuccess={handleBackToList}
+            unitId={activeUnitId}
+            unitName={activeUnitName}
           />
         );
       }
 
       if (activeScreen === 'movement') {
-        return <ProductMovement onSuccess={handleBackToList} />;
+        return (
+          <ProductMovement
+            onSuccess={handleBackToList}
+            unitId={activeUnitId}
+            unitName={activeUnitName}
+          />
+        );
       }
 
-      return <ProductList onEdit={handleEdit} />;
+      if (activeScreen === 'transfer') {
+        return (
+          <ProductTransfer
+            onSuccess={handleBackToList}
+            units={units}
+            currentUnitId={activeUnitId}
+          />
+        );
+      }
+
+      return (
+        <ProductList
+          onEdit={handleEdit}
+          unitId={activeUnitId}
+          canDelete={canOperateAllUnits(me, 'STOCK')}
+        />
+      );
     }
 
     if (activeModule === 'asset') {
@@ -217,6 +464,93 @@ function App() {
       return <OrderList />;
     }
 
+    if (activeModule === 'dashboard') {
+      return <Dashboard />;
+    }
+
+    if (activeModule === 'printers') {
+      const podeFechar = canOperate(me, 'PRINTER');
+      const podeCadastrar = canOperate(me, 'USER_MANAGEMENT');
+
+      if (activeScreen === 'form') {
+        return editingReading
+          ? (
+            <ReadingForm
+              reading={editingReading}
+              sectors={sectorsForShares}
+              onSuccess={handlePrinterSaved}
+              onCancel={() => { setEditingReading(null); setActiveScreen('list'); }}
+            />
+          )
+          : <PrinterForm printerToEdit={editingPrinter} onSuccess={handlePrinterSaved} />;
+      }
+
+      if (printerTab === 'prices') {
+        return <PriceSettings canOperate={podeCadastrar} />;
+      }
+
+      return printerTab === 'closing'
+        ? (
+          <PrinterClosing
+            canOperate={podeFechar}
+            onEditReading={(reading) => { setEditingReading(reading); setActiveScreen('form'); }}
+            reloadToken={printerReloadToken}
+          />
+        )
+        : (
+          <PrinterList
+            onEdit={(printer) => { setEditingPrinter(printer); setActiveScreen('form'); }}
+            canOperate={podeCadastrar}
+            reloadToken={printerReloadToken}
+          />
+        );
+    }
+
+    if (activeModule === 'registry') {
+      const podeOperar = canOperate(me, 'USER_MANAGEMENT');
+
+      if (activeScreen === 'form') {
+        return registryTab === 'enterprises'
+          ? <EnterpriseForm enterpriseToEdit={editingEnterprise} onSuccess={handleRegistrySaved} />
+          : <SectorForm sectorToEdit={editingSector} onSuccess={handleRegistrySaved} />;
+      }
+
+      return registryTab === 'enterprises'
+        ? (
+          <EnterpriseList
+            onEdit={(enterprise) => { setEditingEnterprise(enterprise); setActiveScreen('form'); }}
+            canOperate={podeOperar}
+            onChanged={() => setRegistryReloadToken(token => token + 1)}
+          />
+        )
+        : (
+          <SectorList
+            onEdit={(sector) => { setEditingSector(sector); setActiveScreen('form'); }}
+            canOperate={podeOperar}
+            reloadToken={registryReloadToken}
+          />
+        );
+    }
+
+    if (activeModule === 'users') {
+      if (activeScreen === 'form') {
+        return (
+          <UserForm
+            userToEdit={editingUser}
+            onSuccess={() => { setEditingUser(null); handleBackToList(); }}
+          />
+        );
+      }
+
+      return (
+        <UserList
+          onEdit={(user) => { setEditingUser(user); setActiveScreen('form'); }}
+          canOperate={canOperate(me, 'USER_MANAGEMENT')}
+          currentUserId={me?.id ?? null}
+        />
+      );
+    }
+
     if (activeModule === 'financial') {
       if (activeScreen === 'form') {
         return <ContractForm onSuccess={handleBackToList} />;
@@ -235,8 +569,105 @@ function App() {
   };
 
   const renderModuleActions = () => {
-    if (activeModule === 'welcome') {
+    // O painel tem o próprio filtro de mês dentro do card, então não usa a barra
+    // de ações; sem este retorno ele herdava os botões do bloco padrão.
+    if (activeModule === 'welcome' || activeModule === 'dashboard') {
       return null;
+    }
+
+    if (activeModule === 'printers') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de impressoras">
+          <button
+            className={`header-action ${printerTab === 'closing' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('closing')}
+          >
+            Fechamento
+          </button>
+
+          <button
+            className={`header-action ${printerTab === 'registry' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('registry')}
+          >
+            Impressoras
+          </button>
+
+          <button
+            className={`header-action ${printerTab === 'prices' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handlePrinterTab('prices')}
+          >
+            Preços
+          </button>
+
+          {printerTab === 'registry' && canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => {
+                setEditingPrinter(null);
+                setEditingReading(null);
+                setActiveScreen('form');
+              }}
+            >
+              + Nova impressora
+            </button>
+          )}
+        </nav>
+      );
+    }
+
+    if (activeModule === 'registry') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de cadastros">
+          <button
+            className={`header-action ${registryTab === 'enterprises' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleRegistryTab('enterprises')}
+          >
+            Empresas
+          </button>
+
+          <button
+            className={`header-action ${registryTab === 'sectors' && activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleRegistryTab('sectors')}
+          >
+            Setores
+          </button>
+
+          {canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => {
+                setEditingEnterprise(null);
+                setEditingSector(null);
+                setActiveScreen('form');
+              }}
+            >
+              {registryTab === 'enterprises' ? '+ Nova empresa' : '+ Novo setor'}
+            </button>
+          )}
+        </nav>
+      );
+    }
+
+    if (activeModule === 'users') {
+      return (
+        <nav className="header-actions" aria-label="Ações do módulo de usuários">
+          <button
+            className={`header-action ${activeScreen === 'list' ? 'is-active' : ''}`}
+            onClick={() => { setEditingUser(null); handleBackToList(); }}
+          >
+            Ver lista
+          </button>
+
+          {canOperate(me, 'USER_MANAGEMENT') && (
+            <button
+              className={`header-action ${activeScreen === 'form' ? 'is-active' : ''}`}
+              onClick={() => { setEditingUser(null); setActiveScreen('form'); }}
+            >
+              + Novo usuário
+            </button>
+          )}
+        </nav>
+      );
     }
 
     if (activeModule === 'financial') {
@@ -287,6 +718,15 @@ function App() {
             {activeModule === 'stock' ? 'Movimentações' : 'Empréstimos'}
           </button>
         )}
+
+        {activeModule === 'stock' && (
+          <button
+            className={`header-action ${activeScreen === 'transfer' ? 'is-active' : ''}`}
+            onClick={() => setActiveScreen('transfer')}
+          >
+            Transferir
+          </button>
+        )}
       </nav>
     );
   };
@@ -318,38 +758,34 @@ function App() {
             <House size={20} /> Início
           </button>
 
-          <button
-            onClick={() => handleSelectModule('stock')}
-            className={getSidebarClassName('stock')}
-          >
-            <Package size={20} /> Estoque
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('asset')}
-            className={getSidebarClassName('asset')}
-          >
-            <Desktop size={20} /> Ativos
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('order')}
-            className={getSidebarClassName('order')}
-          >
-            <ShoppingCart size={20} /> Pedidos
-          </button>
-
-          <button
-            onClick={() => handleSelectModule('financial')}
-            className={getSidebarClassName('financial')}
-          >
-            <InvoiceIcon size={20} /> Financeiro
-          </button>
+          {/* O menu mostra só o que a pessoa alcança. É conveniência de tela: o
+              backend recusaria a chamada de qualquer forma. */}
+          {OPERATION_MODULES.filter(item => podeVerModulo(me, item.module)).map(item => (
+            <button
+              key={item.module}
+              onClick={() => handleSelectModule(item.module)}
+              className={getSidebarClassName(item.module)}
+            >
+              <item.icon size={20} /> {item.label}
+            </button>
+          ))}
         </nav>
 
-        <button onClick={handleLogout} className="sidebar-button logout-button">
-          <SignOut size={20} /> Sair
-        </button>
+        <div className="sidebar-footer">
+          {ADMIN_MODULES.filter(item => canSee(me, MODULE_PERMISSION[item.module])).map(item => (
+            <button
+              key={item.module}
+              onClick={() => handleSelectModule(item.module)}
+              className={getSidebarClassName(item.module)}
+            >
+              <item.icon size={20} /> {item.label}
+            </button>
+          ))}
+
+          <button onClick={handleLogout} className="sidebar-button logout-button">
+            <SignOut size={20} /> Sair
+          </button>
+        </div>
       </aside>
 
       <div className="main-area">
@@ -359,6 +795,21 @@ function App() {
             <h2>{getPageTitle()}</h2>
             <p>{getPageDescription()}</p>
           </div>
+
+          {activeModule === 'stock' && units.length > 0 && (
+            <div className="unit-picker">
+              <label htmlFor="unit-select">Estoque</label>
+              <select
+                id="unit-select"
+                value={activeUnitId}
+                onChange={(e) => handleChangeUnit(e.target.value)}
+              >
+                {units.map(unit => (
+                  <option key={unit.unitId} value={unit.unitId}>{unit.unitName}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {renderModuleActions()}
         </header>

@@ -10,13 +10,15 @@ import java.util.UUID;
 public record InvoiceResponseDTO(
         UUID id,
         UUID contractId,
-        Integer number,
+        String number,
         BigDecimal totalAmount,
         LocalDate issueDate,
         LocalDate dueDate,
         InvoiceStatus status,
         String serviceDescription,
         String serviceType,
+        /** Caminho do arquivo da nota; nulo quando ninguem anexou. */
+        String attachmentPath,
         List<ApportionmentItemResponseDTO> items
 ) {
     public record ApportionmentItemResponseDTO(

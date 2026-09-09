@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="contracts")
@@ -34,5 +36,15 @@ public class Contract extends BaseEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ContractStatus status;
+
+    /**
+     * Rateio padrao entre centros de custo. Alimenta a primeira nota do contrato,
+     * quando nao ha mes anterior de onde copiar. Vazio e valido: nem todo contrato
+     * e rateado -- ha os de custo integral do CNPJ.
+     */
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true,
+            fetch = FetchType.EAGER)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<ContractSectorShare> defaultShares = new ArrayList<>();
 
 }

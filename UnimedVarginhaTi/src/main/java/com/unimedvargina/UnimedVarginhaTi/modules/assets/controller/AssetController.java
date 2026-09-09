@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class AssetController {
     @Autowired
     private AssetService service;
 
+    @PreAuthorize("@access.canOperate('ASSET')")
     @PutMapping("/{id}")
     public ResponseEntity<Asset> updateAsset(@PathVariable UUID id, @RequestBody Asset asset) {
         asset.setId(id);
@@ -27,16 +29,19 @@ public class AssetController {
         return ResponseEntity.ok(updatedAsset);
     }
 
+    @PreAuthorize("@access.canOperate('ASSET')")
     @PostMapping
     public ResponseEntity<Asset> save(@RequestBody Asset asset) {
         Asset savedAsset = service.create(asset);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedAsset);
     }
+    @PreAuthorize("@access.canRead('ASSET')")
     @GetMapping("/{id}")
     public ResponseEntity<Asset> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(service.findById(id));
     }
 
+    @PreAuthorize("@access.canRead('ASSET')")
     @GetMapping
     public ResponseEntity<Page<Asset>> getAssets(
             @RequestParam(defaultValue = "0") int page,

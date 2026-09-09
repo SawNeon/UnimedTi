@@ -10,9 +10,12 @@ import { SectorService } from '../../../shared/services/sectorService';
 
 interface ProductMovementProps {
   onSuccess: () => void;
+  /** Estoque movimentado. A lista de produtos e o saldo exibido são desta unidade. */
+  unitId: string;
+  unitName: string;
 }
 
-export function ProductMovement({ onSuccess }: ProductMovementProps) {
+export function ProductMovement({ onSuccess, unitId, unitName }: ProductMovementProps) {
   const [Sectors, setSectors] = useState<SectorDTO[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
@@ -24,20 +27,23 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
   const [sector, setSector] = useState<string>('');
 
   useEffect(() => {
+    if (!unitId) return;
+
     const fetchProducts = async () => {
       try {
-        const response = await ProductService.getAll(0, 100);
+        const response = await ProductService.getAll(0, 100, unitId);
         const data = response.content ?? [];
         const dataSectors = await SectorService.getAll();
         setSectors(dataSectors);
         setProducts(data);
+        setSelectedProductId('');
       } catch (error) {
         console.error("Erro ao buscar produtos", error);
         alert("Erro ao carregar a lista de produtos.");
       }
     };
     fetchProducts();
-  }, []);
+  }, [unitId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,30 +59,30 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
     }
 
     setLoading(true);
+    const payload = {
+      id: selectedProductId,
+      quantity: Number(quantity),
+      reason,
+      responsible,
+      sectorId: sector || undefined
+    };
+
     try {
       if (movementType === 'add') {
-        await ProductService.addStock({
-          id: selectedProductId,
-          quantity: Number(quantity),
-          reason,
-          responsible,
-          sector: { id: sector }
-        })  ;
-        alert('Entrada de estoque registrada com sucesso!');
+        await ProductService.addStock(payload, unitId);
+        alert(`Entrada registrada no estoque ${unitName}.`);
       } else {
-        await ProductService.removeStock({
-          id: selectedProductId,
-          quantity: Number(quantity),
-          reason,
-          responsible,
-          sector: { id: sector }
-        });     
-        alert('Saída de estoque registrada com sucesso!');
+        await ProductService.removeStock(payload, unitId);
+        alert(`Saída registrada no estoque ${unitName}.`);
       }
-      onSuccess(); 
+      onSuccess();
     } catch (error) {
       console.error(error);
-      alert('Erro ao registrar movimentação.');
+      // Saldo insuficiente volta como 409 com a mensagem pronta do backend —
+      // mostrar o genérico esconderia justamente o motivo da recusa.
+      const apiMessage = (error as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      alert(apiMessage ?? 'Erro ao registrar movimentação.');
     } finally {
       setLoading(false);
     }
@@ -86,8 +92,10 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-          <ArrowsLeftRight size={28} color="#3a7d71" weight="bold" />
-          <h2 className={styles.title} style={{ margin: 0 }}>Movimentar Estoque</h2>
+          <ArrowsLeftRight size={28} color="#146556" weight="bold" />
+          <h2 className={styles.title} style={{ margin: 0 }}>
+            Movimentar Estoque — {unitName}
+          </h2>
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -113,7 +121,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                 </div>
              </div>
 
-             <div style={{gap: '20px'}}>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                  {/* Quantidade */}
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label style={{fontSize: '12px', fontWeight: 'bold', color: '#555'}}>Quantidade</label>
@@ -132,7 +140,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label className={styles.label}>Tipo</label>
                     <div style={{display: 'flex', gap: '10px', height: '100%', alignItems: 'center'}}>
-                        <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'add' ? '#3a7d71' : '#555', fontWeight: movementType === 'add' ? 'bold' : 'normal'}}>
+                        <label style={{display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: movementType === 'add' ? '#146556' : '#555', fontWeight: movementType === 'add' ? 'bold' : 'normal'}}>
                             <input
                                 className={styles.input}
                                 type="radio" 
@@ -159,7 +167,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
              </div>
 
              {/* Motivo, Responsável e Setor */}
-             <div style={{gap: '20px'}}>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
                     <label className={styles.label}>Motivo</label>
                     <input 
@@ -183,14 +191,20 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                     />
                  </div>
                  <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label className={styles.label}>Setor</label>
-                     <select 
+                    <label className={styles.label}>
+                        Setor {movementType === 'add' && <span style={{ fontWeight: 'normal', color: '#666' }}>(opcional)</span>}
+                    </label>
+                     {/* Obrigatorio so na saida: e o destino do consumo. Numa entrada
+                         por compra ainda nao existe setor de destino. */}
+                     <select
                           className={styles.select}
                           value={sector}
                           onChange={(e) => setSector(e.target.value)}
-                          required
+                          required={movementType === 'remove'}
                       >
-                          <option value="" disabled>Escolha um setor...</option>
+                          <option value="">
+                              {movementType === 'add' ? 'Sem setor' : 'Escolha um setor...'}
+                          </option>
                           {Sectors.map(s => (
                               <option key={s.id} value={s.id}>
                                   {s.name}
@@ -214,7 +228,7 @@ export function ProductMovement({ onSuccess }: ProductMovementProps) {
                  <button 
                     type="submit" 
                     disabled={loading}
-                    style={{flex: 1, padding: '12px', backgroundColor: movementType === 'add' ? '#3a7d71' : '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
+                    style={{flex: 1, padding: '12px', backgroundColor: movementType === 'add' ? '#146556' : '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: 'bold', transition: 'background 0.2s'}}
                  >
                     {loading ? 'Processando...' : 'Confirmar'}
                  </button>

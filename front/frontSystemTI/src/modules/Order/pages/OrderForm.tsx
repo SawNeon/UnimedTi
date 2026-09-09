@@ -66,7 +66,7 @@ export function OrderForm({ onSucess }: OrderFormProps) {
         <div className={styles.container}>
             <div className={styles.card}>
                 <div className={styles.content}>
-                    <PlusCircle size={28} color="#3a7d71" weight="bold" />
+                    <PlusCircle size={28} color="#146556" weight="bold" />
                     <h2 className={styles.title}>Adicionar Pedido</h2>
                 </div>
 

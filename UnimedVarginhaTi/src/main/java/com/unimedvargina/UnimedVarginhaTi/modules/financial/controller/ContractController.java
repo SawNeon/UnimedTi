@@ -6,6 +6,7 @@ import com.unimedvargina.UnimedVarginhaTi.modules.financial.service.ContractServ
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,11 +16,13 @@ public class ContractController {
     @Autowired
     private ContractService contractService;
 
+    @PreAuthorize("@access.canOperate('FINANCIAL')")
     @PostMapping
     public ResponseEntity<Contract> create(@RequestBody Contract contract) {
         return ResponseEntity.ok(contractService.save(contract));
     }
 
+    @PreAuthorize("@access.canRead('FINANCIAL')")
     @GetMapping
     public ResponseEntity<Page<ContractResponseDTO>> getContracts(
             @RequestParam(defaultValue = "0") int page,
