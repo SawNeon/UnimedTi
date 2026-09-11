@@ -338,7 +338,7 @@ class InvoiceServiceTest {
         Sector sector = new Sector();
         sector.setId(id);
         sector.setName("Setor " + id.toString().substring(0, 4));
-        sector.setCostCenterCode(100);
+        sector.setCostCenterCode("100");
         return sector;
     }
 }

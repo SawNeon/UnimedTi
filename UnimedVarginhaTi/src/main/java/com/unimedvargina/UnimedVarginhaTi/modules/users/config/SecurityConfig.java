@@ -2,6 +2,7 @@ package com.unimedvargina.UnimedVarginhaTi.modules.users.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 /**
  * Aqui ficam apenas as regras de "quem pode chegar": publico ou autenticado.
  *
+ * <p>Esta e a UNICA definicao de CORS do projeto. Havia uma segunda, num
+ * WebMvcConfigurer, e duas regras concorrentes para a mesma coisa significam que
+ * mudar uma delas nao resolve -- a outra continua valendo em algum caminho.
+ *
  * <p>Quem pode fazer O QUE e decidido pelos {@code @PreAuthorize} nos controllers,
  * sobre o bean {@link AccessGuard}. Duplicar as regras por path aqui criaria uma
  * segunda fonte de verdade que sairia do ar com a primeira mudanca de rota.
@@ -32,6 +37,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Autowired
     private SecurityFilter securityFilter;
+
+    /**
+     * De onde o navegador pode chamar a API. No servidor interno e o endereco
+     * pelo qual as pessoas abrem o sistema -- http://servidor:porta -- e nao
+     * localhost, que so vale na maquina do desenvolvedor.
+     */
+    @Value("${api.cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -50,6 +63,15 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // A tela em si. Quando o JAR serve o front junto com a API,
+                        // estes arquivos precisam abrir ANTES do login -- e a
+                        // propria tela de login que esta neles. Nao ha dado aqui:
+                        // tudo o que a tela mostra vem da API, que continua fechada.
+                        .requestMatchers(HttpMethod.GET,
+                                "/", "/index.html", "/assets/**",
+                                "/*.svg", "/*.ico", "/*.png").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/confirm").permitAll()
@@ -65,7 +87,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(java.util.List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuration.setAllowedOrigins(java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origem -> !origem.isEmpty())
+                .toList());
 
         configuration.setAllowedMethods(java.util.List.of("GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"));
 

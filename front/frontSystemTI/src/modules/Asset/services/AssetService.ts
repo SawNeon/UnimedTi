@@ -11,9 +11,6 @@ export const AssetService = {
         const response = await api.get(`/assets?page=${page}&size=${size}`);
         return response.data;
     },
-    delete: async (id: string) => {
-        await api.delete(`/assets/${id}`);
-    },
     update: async (id: string, asset: AssetDTO) => {
         const reponse = await api.put(`/assets/${id}`, asset);
         return reponse.data;

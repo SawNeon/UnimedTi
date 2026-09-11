@@ -24,10 +24,6 @@ export const OrderService = {
         return response.data;
     },
 
-    delete: async (id: string) => {
-        await api.delete(`/orders/${id}`);
-        return true;
-    },
 
     viwerFile: async (path: string) => {
         const response = await api.get(`/files/view?path=${path}`, {

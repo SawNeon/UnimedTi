@@ -50,3 +50,9 @@ data/
 **/data/
 **/orders/requests/
 **/orders/invoices/
+
+# A tela compilada, copiada para dentro do JAR na hora de empacotar. E saida de
+# build: versionar deixaria o repositorio com duas copias do front, e a de dentro
+# ficaria velha em silencio.
+UnimedVarginhaTi/src/main/resources/static/
+front/frontSystemTI/dist/
