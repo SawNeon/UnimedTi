@@ -72,6 +72,12 @@ public class SecurityConfig {
                                 "/", "/index.html", "/assets/**",
                                 "/*.svg", "/*.ico", "/*.png").permitAll()
 
+                        // O Docker usa isto para saber se o container esta de pe. Nao
+                        // da para exigir token: quem pergunta e o proprio runtime,
+                        // sem login. So devolve {"status":"UP"} -- show-details esta
+                        // em never no application.yaml, entao nao expoe o que ha dentro.
+                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/confirm").permitAll()

@@ -1,0 +1,80 @@
+# Sobe o sistema da TI no Kratos. Dois containers: a aplicacao (que serve a
+# tela e a API na mesma porta) e o banco.
+#
+#   cd /opt/systemti/deploy
+#   docker compose up -d --build
+#
+# O nome do projeto fixa o prefixo dos containers (systemti-app-1,
+# systemti-db-1) e mantem este ambiente separado do uniquiz, que roda no mesmo
+# Docker.
+name: systemti
+
+services:
+  db:
+    image: mysql:8.0
+    # O proprio container cria o banco e o usuario na primeira subida, a partir
+    # destas variaveis. Depois disso ele ignora: quem manda e o volume.
+    environment:
+      MYSQL_DATABASE: SystemTI
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    volumes:
+      - dados-mysql:/var/lib/mysql
+    # Sem ports: o banco so existe para a rede interna do compose. Nada na rede
+    # da Unimed alcanca a 3306.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: systemti-app:latest
+    env_file: .env
+    environment:
+      # O host "db" e o nome do servico aqui em cima: o Docker resolve.
+      DB_URL: jdbc:mysql://db:3306/SystemTI?serverTimezone=UTC
+      FILE_UPLOAD_DIR: /app/uploads
+    ports:
+      - "${PORTA_PUBLICA:-8090}:8080"
+    volumes:
+      # Os PDFs das notas. Ficam fora da imagem de proposito: trocar a versao
+      # do sistema nao pode levar anexo embora.
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        # Espera o banco aceitar conexao. Sem isso a aplicacao sobe primeiro,
+        # o Flyway nao acha o banco e o container morre em loop.
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  # Nomeados: sobrevivem a docker compose down. Um "down -v" apaga -- e o unico
+  # comando daqui que destroi dado.
+  dados-mysql:
+  uploads:

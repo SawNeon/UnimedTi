@@ -1,0 +1,23 @@
+# O que nao deve entrar no contexto do build: pesa, invalida cache e, no caso
+# dos .env, vazaria segredo para dentro da imagem.
+.git
+.gitignore
+.idea
+.vscode
+.claude
+
+**/node_modules
+**/target
+**/dist
+**/build
+
+.env
+.env.*
+!.env.example
+
+**/uploads
+**/data
+**/*.log
+
+DEPLOY.md
+**/README.md

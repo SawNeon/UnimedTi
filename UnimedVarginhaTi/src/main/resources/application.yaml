@@ -53,6 +53,36 @@ spring:
             enable: true
             required: true
 
+# O healthcheck do container e o unico consumidor disto. Exposto so o health:
+# os demais endpoints do actuator contam versao, variaveis de ambiente e beans,
+# e nada disso precisa estar de pe para o Docker saber se o sistema responde.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  health:
+    # O check de e-mail tenta autenticar no SMTP a cada consulta. Com
+    # MAIL_PASSWORD em branco ele falha, e um health DOWN por causa do
+    # "esqueci minha senha" faria o Docker tratar o sistema inteiro como
+    # quebrado -- com a tela e o banco funcionando. O que precisa entrar no
+    # health e o que derruba o sistema: o banco, que continua sendo checado.
+    mail:
+      enabled: false
+
+# Primeiro acesso de uma instalacao nova. So vale enquanto a tabela de usuarios
+# esta vazia: assim que existir uma pessoa cadastrada, estas variaveis nao fazem
+# mais nada. Ver AdminInicial.
+admin-inicial:
+  login: ${ADMIN_LOGIN:}
+  senha: ${ADMIN_SENHA:}
+  nome: ${ADMIN_NOME:Administrador}
+  email: ${ADMIN_EMAIL:}
+
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
 
