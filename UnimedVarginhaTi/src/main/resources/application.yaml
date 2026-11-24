@@ -27,7 +27,10 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
-    show-sql: ${JPA_SHOW_SQL:true}
+    # Consultar o banco durante a renderizacao esconde N+1 e segura a conexao
+    # aberta mais tempo que o necessario. Os services ja carregam o que precisam.
+    open-in-view: false
+    show-sql: ${JPA_SHOW_SQL:false}
     hibernate:
       # validate: o Hibernate confere se as entidades batem com o schema criado
       # pelas migrations, mas nunca altera o banco. Não volte para update/create —
@@ -50,11 +53,48 @@ spring:
             enable: true
             required: true
 
+# O healthcheck do container e o unico consumidor disto. Exposto so o health:
+# os demais endpoints do actuator contam versao, variaveis de ambiente e beans,
+# e nada disso precisa estar de pe para o Docker saber se o sistema responde.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  health:
+    # O check de e-mail tenta autenticar no SMTP a cada consulta. Com
+    # MAIL_PASSWORD em branco ele falha, e um health DOWN por causa do
+    # "esqueci minha senha" faria o Docker tratar o sistema inteiro como
+    # quebrado -- com a tela e o banco funcionando. O que precisa entrar no
+    # health e o que derruba o sistema: o banco, que continua sendo checado.
+    mail:
+      enabled: false
+
+# Primeiro acesso de uma instalacao nova. So vale enquanto a tabela de usuarios
+# esta vazia: assim que existir uma pessoa cadastrada, estas variaveis nao fazem
+# mais nada. Ver AdminInicial.
+admin-inicial:
+  login: ${ADMIN_LOGIN:}
+  senha: ${ADMIN_SENHA:}
+  nome: ${ADMIN_NOME:Administrador}
+  email: ${ADMIN_EMAIL:}
+
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
 
 api:
   security:
     token:
+      # Em producao defina JWT_SECRET. Trocar o segredo invalida os tokens em uso,
+      # entao quem estiver logado precisa entrar de novo -- so isso.
       secret: ${JWT_SECRET:change-me-in-production}
+
+  cors:
+    # Os enderecos pelos quais o sistema e aberto no navegador, separados por
+    # virgula. No servidor da rede: http://nome-do-servidor:8080
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
 

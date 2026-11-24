@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { User, LockKey, Eye, EyeClosed } from '@phosphor-icons/react';
-import axios from 'axios';
+import { api } from '../../../shared/services/api';
 import { AuthService } from '../../../shared/services/authService';
 import styles from './Login.module.css';
 
@@ -25,7 +25,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
         setLoading(true);
 
         try {
-            await axios.post('http://localhost:8080/api/auth/password-reset/request', { email });
+            await api.post('/auth/password-reset/request', { email });
             alert('Código enviado para o seu e-mail!');
             setView('reset');
         } catch {
@@ -41,10 +41,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
         setLoading(true);
 
         try {
-            await axios.post('http://localhost:8080/api/auth/password-reset/confirm', {
-                token,
-                newPassword
-            });
+            await api.post('/auth/password-reset/confirm', { token, newPassword });
             alert('Senha alterada com sucesso!');
             setView('login');
         } catch {

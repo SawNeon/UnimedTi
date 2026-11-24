@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record InvoiceApportionmentTemplateDTO(
         UUID sourceInvoiceId,
-        Integer sourceInvoiceNumber,
+        String sourceInvoiceNumber,
         LocalDate sourceIssueDate,
         BigDecimal sourceTotalAmount,
         List<ApportionmentTemplateItemDTO> items

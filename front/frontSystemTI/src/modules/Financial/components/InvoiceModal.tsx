@@ -33,8 +33,9 @@ interface InvoiceModalProps {
 interface InvoiceViewResponse {
     id: string;
     contractId: string;
-    number: number;
+    number: string;
     totalAmount: number;
+    attachmentPath?: string | null;
     issueDate: string;
     dueDate: string;
     status: string;
@@ -64,10 +65,20 @@ export function InvoiceModal({ isOpen, onClose, contract, mode, referenceMonth, 
 }
 
 function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, onSuccess }: InvoiceModalProps) {
-    const [number, setNumber] = useState<number | "">("");
+    const [number, setNumber] = useState<string>("");
     const [totalAmount, setTotalAmount] = useState<number>(0);
     const [issueDate, setIssueDate] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
+
+    // Toda nota tem destino de custo: rateada entre centros ou integral no CNPJ
+    // do contrato. O backend exige a escolha.
+    const [costAllocation, setCostAllocation] =
+        useState<'APPORTIONED' | 'ENTERPRISE'>('APPORTIONED');
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    // A nota chega em PDF por e-mail; anexar no lançamento evita que o arquivo
+    // fique só na caixa de entrada de quem recebeu.
+    const [file, setFile] = useState<File | null>(null);
+    const [attachmentPath, setAttachmentPath] = useState<string | null>(null);
 
     const [allSectors, setAllSectors] = useState<SectorFromDB[]>([]);
     const [selectedSectorId, setSelectedSectorId] = useState<string>("");
@@ -171,6 +182,7 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                     const invoice = response.data;
 
                     setNumber(invoice.number);
+                    setAttachmentPath(invoice.attachmentPath ?? null);
                     setTotalAmount(Number(invoice.totalAmount));
                     setIssueDate(invoice.issueDate);
                     setDueDate(invoice.dueDate);
@@ -287,6 +299,23 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
         balanceSectors(totalAmount, updated);
     };
 
+    /**
+     * Baixa pela instância `api`, que injeta o token, e abre como blob. Um link
+     * direto não carregaria o Authorization e receberia 401.
+     */
+    const handleOpenAttachment = async () => {
+        if (!attachmentPath) return;
+
+        try {
+            const resposta = await api.get(`/files/view?path=${encodeURIComponent(attachmentPath)}`, {
+                responseType: 'blob'
+            });
+            window.open(URL.createObjectURL(resposta.data as Blob), '_blank');
+        } catch {
+            setSubmitError('Não foi possível abrir o arquivo da nota.');
+        }
+    };
+
     const handleReloadTemplate = () => {
         loadPreviousTemplate(getTemplateReferenceDate(), totalAmount);
     };
@@ -300,37 +329,62 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
             return;
         }
 
-        if (items.length === 0) {
-            alert("Por favor, adicione pelo menos um setor para o rateio.");
+        setSubmitError(null);
+        const rateado = costAllocation === 'APPORTIONED';
+
+        if (rateado && items.length === 0) {
+            setSubmitError("Adicione ao menos um setor no rateio, ou marque a nota como custo integral do CNPJ.");
             return;
         }
 
-        const sumAllocations = items.reduce((sum, i) => sum + i.allocation, 0);
-        if (Math.abs(sumAllocations - totalAmount) > 1) {
-            alert("Erro: A soma dos rateios por setor precisa ser igual ao valor total da nota!");
-            return;
+        // Igualdade exata: a tolerância de R$ 1 que existia aqui deixava passar
+        // uma diferença de centavos que o backend recusa, e o operador via a
+        // recusa sem entender de onde vinha.
+        if (rateado) {
+            const sumAllocations = roundMoney(items.reduce((sum, i) => sum + i.allocation, 0));
+            if (sumAllocations !== roundMoney(totalAmount)) {
+                const diferenca = roundMoney(sumAllocations - totalAmount);
+                setSubmitError(
+                    `A soma do rateio (R$ ${sumAllocations.toFixed(2)}) não confere com o valor da nota ` +
+                    `(R$ ${roundMoney(totalAmount).toFixed(2)}). Diferença de R$ ${diferenca.toFixed(2)}.`
+                );
+                return;
+            }
         }
 
         const payload = {
             contractId: contract.id,
-            number: Number(number),
+            number: number.trim(),
+            // A competência é o mês que está sendo controlado na tela, e não o mês
+            // da emissão: há nota emitida em abril que pertence ao controle de maio.
+            competence: `${referenceMonth ?? issueDate.slice(0, 7)}-01`,
             totalAmount: Number(totalAmount),
             issueDate,
             dueDate,
-            items: items.map(i => ({
-                sectorId: i.sectorId,
-                allocation: Number(i.allocation)
-            }))
+            costAllocation,
+            items: rateado
+                ? items.map(i => ({ sectorId: i.sectorId, allocation: Number(i.allocation) }))
+                : []
         };
 
         try {
-            console.log("Enviando payload:", payload);
-            await api.post('/invoices', payload);
+            const criada = await api.post<{ id: string }>('/invoices', payload);
+
+            if (file && criada.data?.id) {
+                const form = new FormData();
+                form.append('file', file);
+                await api.post(`/invoices/${criada.data.id}/attachment`, form);
+            }
 
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
-            console.error("Erro ao salvar nota:", error);
+            // O backend recusa com mensagem pronta (nota duplicada na competência,
+            // rateio que não fecha). Mostrar o genérico esconderia o motivo.
+            setSubmitError(
+                (error as { response?: { data?: { message?: string } } })
+                    .response?.data?.message ?? "Erro ao salvar a nota."
+            );
         }
     };
     if (!isOpen || !contract) return null;
@@ -349,7 +403,9 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                     <div className={styles.row}>
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Número da Nota</label>
-                            <input type="number" required disabled={isView} className={styles.input} value={number} onChange={(e) => setNumber(Number(e.target.value))} />
+                            <input type="text" required disabled={isView} className={styles.input} value={number}
+                                   onChange={(e) => setNumber(e.target.value)}
+                                   placeholder="Ex: 2026/1141" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label className={styles.label}>Valor Total (R$)</label>
@@ -368,6 +424,69 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                         </div>
                     </div>
 
+                    <div className={styles.row}>
+                        <div style={{ flex: 1 }}>
+                            <label className={styles.label}>Destino do custo</label>
+                            <select
+                                className={styles.input}
+                                disabled={isView}
+                                value={costAllocation}
+                                onChange={(e) => setCostAllocation(e.target.value as 'APPORTIONED' | 'ENTERPRISE')}
+                            >
+                                <option value="APPORTIONED">Ratear entre centros de custo</option>
+                                <option value="ENTERPRISE">Custo integral do CNPJ</option>
+                            </select>
+                            <small style={{ color: '#666' }}>
+                                {costAllocation === 'APPORTIONED'
+                                    ? 'A soma do rateio precisa fechar exatamente com o valor da nota.'
+                                    : `Todo o valor fica com ${contract.enterpriseName}, sem divisão por setor.`}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div className={styles.row}>
+                        <div style={{ flex: 1 }}>
+                            <label className={styles.label}>Arquivo da nota</label>
+                            {isView ? (
+                                attachmentPath ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenAttachment}
+                                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                                                 color: '#146556', fontWeight: 700, textDecoration: 'underline' }}
+                                    >
+                                        Abrir arquivo da nota
+                                    </button>
+                                ) : (
+                                    <p style={{ color: '#666' }}>Nenhum arquivo anexado.</p>
+                                )
+                            ) : (
+                                <>
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg"
+                                        className={styles.input}
+                                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                    />
+                                    <small style={{ color: '#666' }}>
+                                        Opcional. PDF, PNG ou JPG — o arquivo que chegou por e-mail.
+                                    </small>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {submitError && (
+                        <p style={{ background: '#ffebee', color: '#b3261e', border: '1px solid #f5c2c0',
+                                    padding: '12px 14px', borderRadius: 6, margin: '4px 0' }}>
+                            {submitError}
+                        </p>
+                    )}
+
+                    {/* Com custo integral do CNPJ nao ha rateio a montar: esconder a
+                        secao evita oferecer uma escolha que o backend recusaria. */}
+                    {costAllocation === 'APPORTIONED' && (
+                    <>
                     <hr className={styles.divider} />
 
                     {!isView && (
@@ -484,6 +603,8 @@ function InvoiceModalContent({ isOpen, onClose, contract, mode, referenceMonth, 
                         <div className={styles.totalIndicator}>
                             Soma do Rateio: <strong>R$ {items.reduce((sum, i) => sum + i.allocation, 0).toFixed(2)}</strong> de R$ {totalAmount.toFixed(2)}
                         </div>
+                    )}
+                    </>
                     )}
 
                     <div className={styles.buttonGroup}>

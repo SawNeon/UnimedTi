@@ -97,6 +97,24 @@ public class GlobalExceptionHandler {
     }
 
     /** Violação de constraint do banco (unique, FK). Não expõe o SQL. */
+    /** Corpo enviado no formato errado: erro de quem chamou, nao do servidor. */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleUnsupportedMediaType(
+            org.springframework.web.HttpMediaTypeNotSupportedException ex,
+            HttpServletRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Formato de envio não suportado por este endpoint.", request);
+    }
+
+    /** Envio de formulario sem o arquivo: e erro de quem chamou, nao do servidor. */
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> handleMissingPart(
+            org.springframework.web.multipart.support.MissingServletRequestPartException ex,
+            HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST,
+                "Envie o arquivo no campo \"" + ex.getRequestPartName() + "\".", request);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
                                                         HttpServletRequest request) {

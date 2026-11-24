@@ -8,6 +8,46 @@ interface ContractListProps {
     onOpenCostCenters: (invoiceId: string) => void;
 }
 
+const formatMoney = (value: number) =>
+    Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const formatDate = (iso: string) => {
+    const [ano, mes, dia] = iso.split('-');
+    return `${dia}/${mes}/${ano}`;
+};
+
+/**
+ * Reproduz a coluna COMPARATIVO da planilha, mas o valor vem calculado do
+ * backend a partir da nota do mês anterior — não é digitado a cada mês.
+ */
+function renderComparison(contract: ContractMonthResponse) {
+    const { comparison, difference, differencePercent } = contract;
+
+    if (comparison === 'PENDENTE') {
+        return <span className={styles.lowStock}>AGUARDANDO</span>;
+    }
+    if (comparison === 'PRIMEIRA') {
+        return <span className={styles.pageButton} style={{ display: 'inline-block' }}>PRIMEIRA NOTA</span>;
+    }
+    if (comparison === 'MANTEVE') {
+        return <span className={styles.goodStock}>MANTEVE</span>;
+    }
+
+    const subiu = comparison === 'AUMENTOU';
+    const sinal = subiu ? '+' : '';
+    const detalhe = difference == null
+        ? ''
+        : ` ${sinal}${formatMoney(difference)}${
+            differencePercent == null ? '' : ` (${sinal}${differencePercent}%)`
+          }`;
+
+    return (
+        <span className={subiu ? styles.lowStock : styles.goodStock}>
+            {subiu ? 'AUMENTOU' : 'DIMINUIU'}{detalhe}
+        </span>
+    );
+}
+
 export function ContractList({ onOpenCostCenters }: ContractListProps) {
     const [contracts, setContracts] = useState<ContractMonthResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -65,7 +105,8 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
 
     const filteredContracts = contracts.filter(contract =>
         (contract.serviceDescription || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getEnterpriseName(contract).toLowerCase().includes(searchTerm.toLowerCase())
+        getEnterpriseName(contract).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contract.supplierName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const totalValue = filteredContracts.reduce((acc, contract) => {
@@ -110,10 +151,14 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                 <thead>
                                     <tr>
                                         <th>Empresa</th>
+                                        <th>Fornecedor</th>
                                         <th>Tipo</th>
                                         <th>Descrição</th>
                                         <th>Status ({selectedMonth})</th>
-                                        <th>Valor da Nota</th>
+                                        <th style={{ textAlign: 'right' }}>Mês anterior</th>
+                                        <th style={{ textAlign: 'right' }}>Valor da Nota</th>
+                                        <th>Comparativo</th>
+                                        <th>Entregar até</th>
                                         <th>Centro de Custo</th>
                                         <th>Lançamento</th>
                                     </tr>
@@ -126,6 +171,7 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                         return (
                                             <tr key={contract.id}>
                                                 <td>{getEnterpriseName(contract)}</td>
+                                                <td>{contract.supplierName ?? '—'}</td>
                                                 <td>{contract.type}</td>
                                                 <td>{contract.serviceDescription}</td>
                                                 <td>
@@ -137,12 +183,23 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                                         <span className={styles.lowStock}>PENDENTE</span>
                                                     )}
                                                 </td>
-                                                <td>
-                                                    {hasInvoice && invoiceData ? (
-                                                        `R$ ${Number(invoiceData.value).toFixed(2)}`
-                                                    ) : (
-                                                        "-"
-                                                    )}
+                                                <td style={{ textAlign: 'right', color: '#666' }}>
+                                                    {contract.previousAmount != null
+                                                        ? formatMoney(contract.previousAmount)
+                                                        : '—'}
+                                                </td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    {hasInvoice && invoiceData
+                                                        ? <strong>{formatMoney(invoiceData.value)}</strong>
+                                                        : '—'}
+                                                </td>
+                                                <td>{renderComparison(contract)}</td>
+                                                <td style={{ color: '#666' }}>
+                                                    {invoiceData?.deliveredAt
+                                                        ? `entregue em ${formatDate(invoiceData.deliveredAt)}`
+                                                        : invoiceData?.deliveryDeadline
+                                                            ? formatDate(invoiceData.deliveryDeadline)
+                                                            : '—'}
                                                 </td>
                                                 <td>
                                                     <button
@@ -156,9 +213,9 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                                 </td>
                                                 <td>
                                                     {hasInvoice ? (
-                                                        <button className={styles.pageButton} style={{ borderColor: '#3a7d71', color: '#3a7d71' }} onClick={() => handleViewInvoice(contract)}>Visualizar</button>
+                                                        <button className={styles.pageButton} style={{ borderColor: '#146556', color: '#146556' }} onClick={() => handleViewInvoice(contract)}>Visualizar</button>
                                                     ) : (
-                                                        <button className={styles.pageButton} style={{ backgroundColor: '#e0f2f1', color: '#3a7d71', borderColor: '#3a7d71' }} onClick={() => handleLaunchInvoice(contract)}>Lançar Nota</button>
+                                                        <button className={styles.pageButton} style={{ backgroundColor: '#e0f2f1', color: '#146556', borderColor: '#146556' }} onClick={() => handleLaunchInvoice(contract)}>Lançar Nota</button>
                                                     )}
                                                 </td>
                                             </tr>
@@ -167,8 +224,8 @@ export function ContractList({ onOpenCostCenters }: ContractListProps) {
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
-                                        <td colSpan={3} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
+                                        <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', padding: '16px 24px' }}>VALOR TOTAL LANÇADO:</td>
+                                        <td colSpan={5} style={{ fontWeight: 'bold', color: '#2e7d32', padding: '16px 24px', fontSize: '15px' }}>
                                             {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </td>
                                     </tr>

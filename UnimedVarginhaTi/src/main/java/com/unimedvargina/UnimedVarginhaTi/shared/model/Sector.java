@@ -20,7 +20,17 @@ public class Sector extends BaseEntity {
     @Column(nullable = false)
     private String groupName;
 
+    /** Codigo do centro de custo. E o numero: 167 no Hospital, 219 na Operadora. */
     @Column(nullable = false)
-    private Integer costCenterCode;
+    private String costCenterCode;
+
+    /**
+     * Codigo do mesmo setor no Piramide, que e pontuado ("5.09"). So a Operadora
+     * tem: no Hospital o proprio centro de custo ja e o que se lanca. E texto
+     * justamente por causa do ponto -- "5.09" nao cabe em integer, e guardar 509
+     * perderia onde o ponto fica.
+     */
+    @Column(name = "pyramid_code")
+    private String pyramidCode;
 
 }

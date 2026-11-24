@@ -1,5 +1,7 @@
 package com.unimedvargina.UnimedVarginhaTi.shared.service;
 
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.BusinessRuleException;
+import com.unimedvargina.UnimedVarginhaTi.shared.exception.ResourceNotFoundException;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,26 +65,34 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Abre um arquivo dentro da pasta de uploads.
+     *
+     * <p>O caminho e normalizado e conferido contra a raiz: um "../" no parametro
+     * nao alcanca nada fora dali. Antes essa recusa virava 500, como se fosse falha
+     * do servidor -- agora sai como erro do pedido, que e o que ela e.
+     */
     public Resource loadFileAsResource(String relativePath) {
-        try{
-            if(relativePath.startsWith("/")){
-                relativePath = relativePath.substring(1);
-            }
-
-            Path filePath = this.fileStorageLocation.resolve(relativePath).normalize();
-            if (!filePath.startsWith(this.fileStorageLocation)) {
-                throw new RuntimeException("Invalid file path: " + relativePath);
-            }
-
-            Resource resource = new UrlResource(filePath.toUri());
-
-            if(resource.exists() && resource.isReadable()){
-                return resource;
-            } else {
-                throw new RuntimeException("Resource not found: " + relativePath);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error reader the file" + e);
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new BusinessRuleException("Informe o caminho do arquivo.");
         }
+
+        String caminho = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+        Path filePath = this.fileStorageLocation.resolve(caminho).normalize();
+
+        if (!filePath.startsWith(this.fileStorageLocation)) {
+            throw new BusinessRuleException("Caminho de arquivo inválido.");
+        }
+
+        try {
+            Resource resource = new UrlResource(filePath.toUri());
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            }
+        } catch (java.net.MalformedURLException e) {
+            throw new BusinessRuleException("Caminho de arquivo inválido.");
+        }
+
+        throw new ResourceNotFoundException("Arquivo não encontrado: " + caminho);
     }
 }

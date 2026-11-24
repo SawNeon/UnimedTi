@@ -1,0 +1,226 @@
+
+.pageContainer {
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; 
+}
+
+.card {
+  background: white;
+  border-radius: 8px; 
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+  width: 100%;
+  max-width: 1240px;
+  overflow: hidden; 
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  margin: 0;
+}
+
+
+.toolbar {
+  padding: 24px;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.title {
+  font-size: 22px;
+  color: #333;
+  margin: 0;
+  font-weight: 700;
+}
+
+.searchInput {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 250px;
+  color: #555;
+}
+
+.searchInput:focus {
+  border-color: var(--color-brand-700);
+  box-shadow: 0 0 0 3px rgba(20, 101, 86, 0.14);
+}
+
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.2s;
+  
+
+  background-color: var(--color-brand-700); 
+  color: #ffffff;            
+}
+
+.table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #444;
+  font-size: 14px;
+}
+
+.table tr:hover {
+  background-color: #f8fcfb; 
+}
+
+
+.thumbPlaceholder {
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);          
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+
+.lowStock {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.goodStock {
+  color: #2e7d32;
+  background-color: #e8f5e9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.actionsCell {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editBtn {
+  color: var(--color-brand-700); 
+  background-color: var(--color-brand-100);
+}
+
+.editBtn:hover {
+  background-color: var(--color-brand-700);
+  color: white;
+}
+
+.deleteBtn {
+  color: #d32f2f;
+  background-color: #ffebee;
+}
+
+.deleteBtn:hover {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.pageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  color: #333;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.pageButton:hover:not(:disabled) {
+  border-color: var(--color-brand-700);
+  color: var(--color-brand-700);
+  background-color: #f4f9f7;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  margin: 10px 20px 5px 20px;
+}
+/* Cabecalho fixo ao rolar: em lista longa, perder o nome da coluna obriga a
+   voltar ao topo para saber o que se esta lendo. */
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tableContainer {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+
+/* A coluna do avatar nao precisa de respiro lateral de coluna de texto. */
+.table th:first-child,
+.table td:first-child {
+  width: 56px;
+  padding-right: 0;
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 2px;
+}
+
+.toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar .title {
+  flex: 0 0 auto;
+}
+
+/* A busca cresce com o espaco livre em vez de ficar presa a uma largura fixa que
+   cortava o proprio placeholder. */
+.searchInput {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 380px;
+}
