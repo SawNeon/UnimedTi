@@ -2,6 +2,14 @@ server:
   port: 8080
 
 spring:
+  # Valores desta maquina -- senha do banco local, segredo de teste. Fica em
+  # UnimedVarginhaTi/application-local.yaml, FORA de resources: dentro de
+  # resources o Maven o empacotaria dentro do JAR, e a senha sairia junto com o
+  # artefato. Lido do disco, ele nunca entra no build. Opcional: no servidor nao
+  # existe e tudo vem de variavel de ambiente, que tem precedencia sobre ele.
+  config:
+    import: optional:file:./application-local.yaml
+
   servlet:
     multipart:
       max-file-size: 5MB
@@ -21,9 +29,12 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/SystemTI?createDatabaseIfNotExist=true&serverTimezone=UTC}
     username: ${DB_USERNAME:root}
-    # ATENÇÃO: o valor padrão abaixo é só para desenvolvimento local. Em produção
-    # defina DB_PASSWORD por variável de ambiente e remova este default.
-    password: ${DB_PASSWORD:Unimed@2026!}
+    # Sem padrao, de proposito. A senha que ficava aqui foi parar no historico de
+    # um repositorio publico, e um default faz exatamente isso: transforma a
+    # senha em codigo. Sem DB_PASSWORD definida o sistema recusa subir, com o
+    # nome da variavel que falta -- melhor do que subir calado com uma senha que
+    # qualquer um conhece.
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -89,9 +100,12 @@ file:
 api:
   security:
     token:
-      # Em producao defina JWT_SECRET. Trocar o segredo invalida os tokens em uso,
-      # entao quem estiver logado precisa entrar de novo -- so isso.
-      secret: ${JWT_SECRET:change-me-in-production}
+      # Sem padrao: com um segredo publicado, qualquer um que conheca o projeto
+      # forja um token de administrador. O antigo "change-me-in-production" era
+      # pior que nenhum, porque deixava o sistema subir parecendo configurado.
+      # Trocar o segredo invalida os tokens em uso: quem estiver logado entra de
+      # novo -- so isso.
+      secret: ${JWT_SECRET}
 
   cors:
     # Os enderecos pelos quais o sistema e aberto no navegador, separados por

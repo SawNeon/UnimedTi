@@ -15,6 +15,11 @@
 .env.*
 !.env.example
 
+# Config da maquina do desenvolvedor: senha do banco local e segredo de teste.
+# Dentro da imagem ela sobrescreveria as variaveis do servidor em silencio.
+**/application-local.yaml
+**/application-local.yml
+
 **/uploads
 **/data
 **/*.log

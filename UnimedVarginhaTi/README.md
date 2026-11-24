@@ -33,10 +33,33 @@ Depois execute:
 | --- | --- | --- |
 | `DB_URL` | URL JDBC do MySQL | `jdbc:mysql://localhost:3306/SystemTI?createDatabaseIfNotExist=true&serverTimezone=UTC` |
 | `DB_USERNAME` | Usuario do banco | `root` |
-| `DB_PASSWORD` | Senha do banco | vazio |
-| `JWT_SECRET` | Segredo para assinar tokens JWT | `change-me-in-production` |
+| `DB_PASSWORD` | Senha do banco | **sem padrao** -- o sistema nao sobe sem ela |
+| `JWT_SECRET` | Segredo para assinar tokens JWT | **sem padrao** -- o sistema nao sobe sem ele |
 | `FILE_UPLOAD_DIR` | Pasta de uploads | `./uploads` |
 | `MAIL_HOST` | Servidor SMTP | `smtp-mail.outlook.com` |
 | `MAIL_PORT` | Porta SMTP | `587` |
 
-Em producao, configure essas variaveis no ambiente do servidor e use um usuario MySQL proprio da aplicacao, com senha forte e permissoes restritas ao banco `SystemTI`.
+`DB_PASSWORD` e `JWT_SECRET` nao tem valor padrao de proposito. Um padrao
+transforma a senha em codigo: ela entra no git, vai para o repositorio e fica no
+historico para sempre. Sem a variavel, o sistema recusa subir dizendo qual
+falta.
+
+Para o dia a dia nesta maquina, crie `UnimedVarginhaTi/application-local.yaml`
+-- ao lado do `pom.xml`, e **nao** dentro de `src/main/resources`, senao o Maven
+o empacota dentro do JAR e a senha viaja com o artefato. Ele e lido
+automaticamente e o `.gitignore` ja o cobre:
+
+```yaml
+spring:
+  datasource:
+    password: a-senha-do-seu-mysql
+
+api:
+  security:
+    token:
+      secret: qualquer-frase-longa-para-desenvolvimento
+```
+
+Em producao, nada de arquivo: as duas vem por variavel de ambiente. Use um
+usuario MySQL proprio da aplicacao, com senha forte e permissoes restritas ao
+banco `SystemTI`.
